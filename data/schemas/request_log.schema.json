@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "properties": {
+    "trace_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "environment": { "type": "string" },
+    "workload": { "type": "string" },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "total_pipeline_ms": { "type": "number" },
+        "model_latency_ms": { "type": "number" },
+        "tool_total_ms": { "type": "number" },
+        "tool_processing_ms": { "type": "number" },
+        "mcp_protocol_overhead_ms": { "type": "number" },
+        "pipeline_overhead_ms": { "type": "number" }
+      }
+    }
+  },
+  "required": [
+    "trace_id",
+    "timestamp",
+    "environment",
+    "workload",
+    "metrics"
+  ]
+}

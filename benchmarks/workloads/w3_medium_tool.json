@@ -1,0 +1,8 @@
+{
+  "name": "w3_medium_tool",
+  "description": "Single tool, 100ms delay",
+  "model": "mock",
+  "workflow": ["echo"],
+  "tool_params": { "delay_ms": 100, "payload_size_kb": 1 },
+  "payload": { "text": "hello" }
+}

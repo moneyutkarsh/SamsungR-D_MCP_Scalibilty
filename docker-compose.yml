@@ -1,14 +1,18 @@
 version: "3.9"
 
 services:
+
   echo_tool:
     build:
       context: .
       dockerfile: infrastructure/docker/echo.Dockerfile
+    container_name: echo_tool
     ports:
       - "8001:8001"
+    volumes:
+      - ./data/logs:/data/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "nc", "-z", "localhost", "8001"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -17,22 +21,39 @@ services:
     build:
       context: .
       dockerfile: infrastructure/docker/agent.Dockerfile
+    container_name: agent_host
     ports:
       - "8000:8000"
     environment:
       - ECHO_TOOL_URL=http://echo_tool:8001
+      - ENVIRONMENT=docker
+    volumes:
+      - ./data/logs:/data/logs
     depends_on:
       echo_tool:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
 
   prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    image: prom/prometheus:latest
+    container_name: prometheus
     ports:
       - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./data/prometheus:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
+    container_name: grafana
     ports:
       - "3000:3000"
+    depends_on:
+      - prometheus

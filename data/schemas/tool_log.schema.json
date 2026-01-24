@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "trace_id": { "type": "string" },
+    "tool_name": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "total_latency_ms": { "type": "number" },
+    "tool_processing_ms": { "type": "number" },
+    "mcp_protocol_overhead_ms": { "type": "number" }
+  },
+  "required": ["trace_id", "tool_name", "timestamp"]
+}

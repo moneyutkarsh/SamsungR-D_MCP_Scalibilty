@@ -1,0 +1,8 @@
+{
+  "name": "w1_pure_mcp",
+  "description": "Pure MCP overhead, zero delay",
+  "model": "mock",
+  "workflow": ["echo"],
+  "tool_params": { "delay_ms": 0, "payload_size_kb": 1 },
+  "payload": { "text": "ping" }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "string",
+  "description": "string",
+  "model": "mock|openai",
+  "workflow": ["tool_name", "..."],
+  "tool_params": {
+    "delay_ms": "number",
+    "payload_size_kb": "number"
+  },
+  "payload": {
+    "text": "string"
+  }
+}

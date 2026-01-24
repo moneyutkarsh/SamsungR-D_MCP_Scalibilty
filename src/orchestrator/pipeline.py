@@ -13,7 +13,11 @@ class AgentPipeline:
         model_resp = await self.model.generate(prompt=prompt, tools=tool_schemas)
         model_latency_ms = model_resp.metadata.total_latency_ms
 
-        tool_metrics = None
+        tool_metrics = await self.tools.call_mcp_tool(
+        tool_name=tool_name,
+        args=tool_args
+        )
+
 
         if model_resp.tool_calls:
             call = model_resp.tool_calls[0]

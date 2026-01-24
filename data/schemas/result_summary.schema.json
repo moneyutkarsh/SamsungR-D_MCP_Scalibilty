@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "experiment_id": { "type": "string" },
+    "config": { "type": "object" },
+    "aggregate_metrics": { "type": "object" },
+    "notes": { "type": "string" }
+  }
+}

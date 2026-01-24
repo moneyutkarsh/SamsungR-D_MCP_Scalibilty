@@ -1,10 +1,18 @@
 FROM python:3.11-slim
 
 WORKDIR /app
-ENV PYTHONPATH=/app
 
-RUN pip install mcp fastapi uvicorn
+# Install deps
+RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
-COPY src/servers/echo_tool /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "server.py"]
+COPY src/ /app/src/
+COPY data/ /app/data/
+
+ENV PYTHONPATH=/app/src
+
+EXPOSE 8001
+
+CMD ["python", "-m", "servers.echo_tool.server"]

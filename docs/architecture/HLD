@@ -1,0 +1,54 @@
+graph TD
+    subgraph "Load Generation Layer"
+        LG[Locust / K6 Load Generator] -->|Concurrent JSON-RPC Requests| Host
+        LS[Load Scripts and Workload Profiles] -.-> LG
+    end
+
+    subgraph "MCP Host / Client Layer"
+        Host[MCP Client or Gateway]
+        Router[Model Router]
+        Agent[Agent Orchestrator Pipeline]
+        Adapter[Tool Adapter Interface]
+
+        Host --> Router
+        Router --> Agent
+        Agent --> Adapter
+    end
+
+    subgraph "MCP Tool Servers (Dockerized)"
+        Adapter -->|stdio or SSE| S1[Tool Server A]
+        Adapter -->|stdio or SSE| S2[Tool Server B]
+        Adapter -->|stdio or SSE| S3[Multi-step Workflow Server]
+    end
+
+    subgraph "Observability Layer"
+        Metrics[Prometheus Exporter]
+        Logs[Structured JSON Logs]
+        Traces[Latency Traces]
+
+        Host --> Metrics
+        Host --> Logs
+        Host --> Traces
+
+        S1 --> Metrics
+        S2 --> Metrics
+        S3 --> Metrics
+
+        Metrics --> DB[(Prometheus TSDB)]
+        DB --> Grafana[Grafana Dashboard]
+    end
+
+    subgraph "Experiment Control"
+        FI[Failure Injection and Fault Testing]
+        FI -.-> Adapter
+        FI -.-> S1
+        FI -.-> S2
+        FI -.-> S3
+    end
+
+    Grafana -.-> KPI1[Latency p50 p95 p99]
+    Grafana -.-> KPI2[Throughput and RPS]
+    Grafana -.-> KPI3[Concurrency Limit]
+    Grafana -.-> KPI4[Tool Invocation Cost]
+    Grafana -.-> KPI5[Routing and Agent Overhead]
+    Grafana -.-> KPI6[Resource Utilization]
