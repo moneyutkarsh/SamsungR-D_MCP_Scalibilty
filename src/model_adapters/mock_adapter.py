@@ -1,25 +1,32 @@
 import time
-from .base import IMCPAdapter, ModelResponse
+from .base import IMCPAdapter, ModelResponse, ModelMetadata
 
 
 class MockAdapter(IMCPAdapter):
     """
-    Deterministic zero-cost model used to measure MCP overhead only.
+    Deterministic, near-zero-cost adapter for measuring pure MCP overhead.
     """
 
     def name(self) -> str:
         return "mock"
 
-    def generate(self, prompt: str, **kwargs) -> ModelResponse:
-        start = time.time()
+    async def generate(self, prompt: str, tools=None, **kwargs) -> ModelResponse:
+        start = time.perf_counter()
 
-        # Deterministic fake response
+        # Simulate trivial processing
         text = "OK"
 
-        latency_ms = (time.time() - start) * 1000
+        end = time.perf_counter()
+        latency_ms = (end - start) * 1000
 
         return ModelResponse(
             text=text,
-            raw={"mock": True},
-            latency_ms=latency_ms
+            tool_calls=[],
+            metadata=ModelMetadata(
+                total_latency_ms=latency_ms,
+                ttft_ms=latency_ms,
+                input_tokens=1,
+                output_tokens=1
+            ),
+            raw={"mock": True}
         )
