@@ -1,6 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 import asyncio
 import time
+import os
 
 from utils.jsonl_logger import JSONLLogger
 
@@ -9,7 +10,7 @@ mcp = FastMCP("EchoServer")
 tool_logger = JSONLLogger("/data/logs/echo_tool.jsonl")
 
 @mcp.tool()
-async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1, _meta: dict = None):
+async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1):
     start = time.perf_counter()
 
     if delay_ms > 0:
@@ -21,9 +22,8 @@ async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1, _meta: di
 
     end = time.perf_counter()
 
+    # trace_id will be propagated via MCP protocol metadata
     trace_id = "none"
-    if _meta and isinstance(_meta, dict):
-        trace_id = _meta.get("trace_id", "none")
 
     proc_ms = (end - start) * 1000
 
@@ -43,4 +43,7 @@ async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1, _meta: di
     }
 
 if __name__ == "__main__":
-    mcp.run(transport="sse", port=8001)
+    import uvicorn
+    # FastMCP creates an internal app that needs to be accessed via the mcp object
+    # We run uvicorn directly pointing to the module
+    uvicorn.run("servers.echo_tool.server:mcp", host="0.0.0.0", port=8001)

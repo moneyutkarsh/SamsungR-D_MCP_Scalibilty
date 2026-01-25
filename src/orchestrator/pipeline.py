@@ -1,23 +1,21 @@
 import time
 
 class AgentPipeline:
-    def __init__(self, model_adapter, tool_executor, tool_server_url):
+    def __init__(self, model_adapter, tool_executor):
         self.model = model_adapter
         self.tools = tool_executor
-        self.tool_server_url = tool_server_url
 
-    async def run(self, prompt: str, tool_schemas: list):
+    async def run_workload(self, workload: dict):
         pipeline_start = time.perf_counter()
+
+        prompt = workload.get("prompt", "")
+        tool_schemas = workload.get("tool_schemas", [])
 
         # ---- Model phase ----
         model_resp = await self.model.generate(prompt=prompt, tools=tool_schemas)
         model_latency_ms = model_resp.metadata.total_latency_ms
 
-        tool_metrics = await self.tools.call_mcp_tool(
-        tool_name=tool_name,
-        args=tool_args
-        )
-
+        tool_metrics = None
 
         if model_resp.tool_calls:
             call = model_resp.tool_calls[0]
@@ -25,7 +23,6 @@ class AgentPipeline:
             tool_args = call["function"]["arguments"]
 
             tool_metrics = await self.tools.call_mcp_tool(
-                server_url=self.tool_server_url,
                 tool_name=tool_name,
                 args=tool_args
             )

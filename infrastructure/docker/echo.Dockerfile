@@ -12,6 +12,7 @@ COPY src/ /app/src/
 COPY data/ /app/data/
 
 ENV PYTHONPATH=/app/src
+ENV PORT=8001
 
 EXPOSE 8001
 
