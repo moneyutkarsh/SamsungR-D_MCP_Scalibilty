@@ -2,6 +2,9 @@ version: "3.9"
 
 services:
 
+  # -----------------------------
+  # MCP Echo Tool Server
+  # -----------------------------
   echo_tool:
     build:
       context: .
@@ -17,6 +20,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # -----------------------------
+  # Ollama Local LLM Server
+  # -----------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    # Optional: GPU support (uncomment if you have NVIDIA)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # -----------------------------
+  # Agent Host (Orchestrator)
+  # -----------------------------
   agent_host:
     build:
       context: .
@@ -27,17 +52,30 @@ services:
     environment:
       - ECHO_TOOL_URL=http://echo_tool:8001
       - ENVIRONMENT=docker
+
+      # 🔥 Model selection
+      - MODEL_BACKEND=ollama
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:3b
+
     volumes:
       - ./data/logs:/data/logs
+
     depends_on:
       echo_tool:
         condition: service_healthy
+      ollama:
+        condition: service_started
+
     deploy:
       resources:
         limits:
           cpus: "0.5"
           memory: 512M
 
+  # -----------------------------
+  # Prometheus
+  # -----------------------------
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -50,6 +88,9 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
 
+  # -----------------------------
+  # Grafana
+  # -----------------------------
   grafana:
     image: grafana/grafana:latest
     container_name: grafana

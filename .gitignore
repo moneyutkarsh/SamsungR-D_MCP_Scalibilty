@@ -1,0 +1,97 @@
+# -----------------------------
+# Python
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+ENV/
+env/
+pip-wheel-metadata/
+
+# -----------------------------
+# Jupyter / IPython
+# -----------------------------
+.ipynb_checkpoints/
+
+# -----------------------------
+# Logs & Experiment Outputs
+# -----------------------------
+data/logs/
+data/results/
+data/prometheus/
+data/ollama/
+
+# Keep empty directories (optional)
+!data/logs/.gitkeep
+!data/results/.gitkeep
+!data/prometheus/.gitkeep
+
+# -----------------------------
+# Prometheus & Grafana Runtime Data
+# -----------------------------
+prometheus-data/
+grafana-data/
+
+# -----------------------------
+# Docker
+# -----------------------------
+*.log
+docker-compose.override.yml
+
+# -----------------------------
+# Environment / Secrets
+# -----------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------
+# IDE / Editor
+# -----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*.iml
+
+# -----------------------------
+# OS
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Coverage / Test
+# -----------------------------
+.coverage
+htmlcov/
+.pytest_cache/
+
+# -----------------------------
+# Misc
+# -----------------------------
+*.sqlite
+*.db
+*.parquet
+*.csv
+
+# -----------------------------
+# Node (if added later)
+# -----------------------------
+node_modules/
+
+# -----------------------------
+# Mac / Linux
+# -----------------------------
+*.DS_Store

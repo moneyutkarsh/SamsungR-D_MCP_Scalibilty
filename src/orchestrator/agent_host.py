@@ -11,7 +11,9 @@ from metrics.prometheus import MCP_REQUESTS, MCP_LATENCY
 from orchestrator.tool_executor import ToolExecutor
 from orchestrator.pipeline import AgentPipeline
 
+# Adapters
 from model_adapters.mock_adapter import MockAdapter
+from model_adapters.ollama_adapter import OllamaAdapter
 # from model_adapters.openai_adapter import OpenAIAdapter
 
 from core.context import request_trace_id
@@ -20,18 +22,49 @@ from utils.jsonl_logger import JSONLLogger
 # Environment tag for cross-env comparison (local, docker, cloud, etc)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 
+# Which model backend to use: mock | ollama | openai
+MODEL_BACKEND = os.getenv("MODEL_BACKEND", "ollama")
+
 class RunRequest(BaseModel):
     workload: dict
 
-# Persistent components
+# -------------------------------
+# Initialize core components
+# -------------------------------
+
 executor = ToolExecutor()
-model = MockAdapter()
-# model = OpenAIAdapter(api_key="...", model="gpt-4o-mini")
+
+# Select model backend
+if MODEL_BACKEND == "mock":
+    print("Using MockAdapter")
+    model = MockAdapter()
+
+elif MODEL_BACKEND == "ollama":
+    print("Using OllamaAdapter")
+    model = OllamaAdapter(
+        model=os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
+        base_url=os.getenv("OLLAMA_URL", "http://ollama:11434")
+    )
+
+elif MODEL_BACKEND == "openai":
+    print("Using OpenAIAdapter")
+    from model_adapters.openai_adapter import OpenAIAdapter
+    model = OpenAIAdapter(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        model=os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    )
+
+else:
+    raise RuntimeError(f"Unknown MODEL_BACKEND: {MODEL_BACKEND}")
 
 pipeline = AgentPipeline(model, executor)
 
 # Async JSONL logger
 request_logger = JSONLLogger("/data/logs/agent_host.jsonl")
+
+# -------------------------------
+# FastAPI app lifecycle
+# -------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +76,10 @@ app = FastAPI(lifespan=lifespan)
 
 # Automatic HTTP metrics
 Instrumentator().instrument(app).expose(app)
+
+# -------------------------------
+# API Endpoint
+# -------------------------------
 
 @app.post("/run")
 async def run(req: RunRequest):
@@ -59,6 +96,7 @@ async def run(req: RunRequest):
 
     m = result["metrics"]
 
+    # Prometheus metrics
     MCP_LATENCY.labels(component="total").observe(total_ms)
     MCP_LATENCY.labels(component="model").observe(m["model_latency_ms"])
     MCP_LATENCY.labels(component="tool").observe(m["tool_total_ms"])
@@ -70,7 +108,8 @@ async def run(req: RunRequest):
         "trace_id": trace_id,
         "environment": ENVIRONMENT,
         "workload": req.workload.get("name", "unknown"),
-        "metrics": m
+        "metrics": m,
+        "model_backend": MODEL_BACKEND
     })
 
     # Reset context var
