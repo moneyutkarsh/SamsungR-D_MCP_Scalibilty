@@ -149,21 +149,43 @@ Each request is assigned a `trace_id` and correlated across Agent, Executor, and
 - Docker
 - Docker Compose
 
-### Build and start everything
+### Step-by-Step Safe Run Plan
+
+Follow these steps from the project root to safely start and verify the system.
+
+1) Build & start everything
 
 ```bash
-docker-compose build
-docker-compose up
+docker-compose up --build
 ```
 
-### Verify services
+Wait until you see service health/started messages in logs (these may appear in `docker-compose` output):
 
-- Agent Host: `http://localhost:8000/docs`
-- Metrics: `http://localhost:8000/metrics`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3000`
+- `echo_tool healthy`
+- `agent_host started`
+- `ollama running`
+- `prometheus running`
+- `grafana running`
 
-### Run a test request
+2) Pull the model inside Ollama (new terminal)
+
+```bash
+docker exec -it ollama ollama pull llama3.1:8b
+```
+
+(Replace `llama3.1:8b` with the model you configured.)
+
+3) Check Agent Host
+
+Open:
+
+```
+http://localhost:8000/docs
+```
+
+If you see the Swagger UI the Agent Host is responding.
+
+4) Send one test request
 
 ```bash
 curl -X POST http://localhost:8000/run \
@@ -171,11 +193,63 @@ curl -X POST http://localhost:8000/run \
   -d @benchmarks/workloads/w1_pure_mcp.json
 ```
 
-### Check logs
+Expected:
+
+- You receive a `trace_id` in the response
+- You receive a successful response body
+- No errors printed to the agent host or tool logs
+
+5) Check logs
 
 ```bash
 ls data/logs/
 ```
+
+You should see these files (and they should not be empty):
+
+- `agent_host.jsonl`
+- `tool_executor.jsonl`
+- `echo_tool.jsonl`
+
+6) Check metrics
+
+Open:
+
+```
+http://localhost:8000/metrics
+```
+
+And Prometheus:
+
+```
+http://localhost:9090
+```
+
+Search in Prometheus for the histogram buckets, e.g. `mcp_latency_ms_bucket`.
+
+7) Check Grafana
+
+Open:
+
+```
+http://localhost:3000
+```
+
+Login: `admin` / `admin` (default)
+
+You can skip dashboards for now; Grafana is only needed to view long-term metrics and dashboards.
+
+Troubleshooting
+
+If something fails, collect service logs with:
+
+```bash
+docker-compose logs agent_host
+docker-compose logs ollama
+docker-compose logs echo_tool
+```
+
+Add these logs to any issue or share them when asking for help.
 
 ---
 
