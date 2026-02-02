@@ -1,342 +1,224 @@
-# MCP Scalability Analysis
+# 25LAI46MS_Systematic_Analysis_of_MCP_Scalability
+SRIB-PRISM Program
 
-Systematic Analysis of Model Context Protocol (MCP) Scalability
+## Project Status
 
-This repository is a research-grade benchmarking platform for systematically analyzing the scalability of the Model Context Protocol (MCP) along multiple dimensions:
+### Completed Milestones
 
-- Concurrency
-- Tool count
-- Workflow depth
-- Payload size
-- Resource limits
-- Transport (SSE / stdio)
-- Model backends (Mock / Real)
+- ✅ **Core Infrastructure:** Fully containerized microservices architecture with Docker Compose orchestration
+- ✅ **Model Integration:** Pluggable adapter system supporting Mock, Ollama, OpenAI, and Anthropic backends
+- ✅ **Observability Stack:** End-to-end instrumentation with Prometheus metrics, structured JSONL logging, and distributed tracing
+- ✅ **Workload Suite:** Seven canonical workload profiles (W1-W7) covering orthogonal scalability dimensions
+- ✅ **Load Testing:** High-concurrency load generation framework using Locust
+- ✅ **Data Pipeline:** Automated aggregation and analysis scripts for experimental results
+- ✅ **MCP Tool Servers:** Echo tool server implementation with FastMCP
+- ✅ **Agent Orchestration:** Complete agentic workflow pipeline with tool execution engine
 
-It provides:
+## System Architecture
 
-- A full agent + tool MCP pipeline
-- High-concurrency load generation (Locust)
-- Fine-grained observability (Prometheus + Grafana)
-- End-to-end tracing and structured JSONL logging
-- Reproducible Docker-based experiment environment
-- Aggregation scripts that produce paper-grade datasets
+The system follows a multi-layered microservices architecture designed for systematic performance analysis:
 
----
+![System Architecture](docs/architecture/Architectural%20diagram.png)
 
-## What this measures
+### Key Capabilities
 
-The system decomposes end-to-end latency into:
+The platform measures the following performance characteristics:
 
-- Model latency
-- Tool execution cost
-- MCP protocol overhead
-- Pipeline orchestration overhead
+- **Latency Decomposition:** Model latency, tool execution cost, MCP protocol overhead, pipeline orchestration overhead
+- **Throughput Metrics:** Requests per second (RPS) under varying load conditions
+- **Latency Distribution:** p50, p95, p99 percentiles
+- **Saturation Analysis:** Concurrency limits and degradation behavior
+- **Resource Utilization:** CPU, memory, and network consumption patterns
+- **Protocol Efficiency:** MCP overhead percentage relative to total request latency
 
-And measures:
 
-- Throughput (RPS)
-- p50 / p95 / p99 latency
-- Saturation points
-- Resource usage
-- Protocol overhead percentage
-- Tail latency behavior
 
----
-
-## High-level architecture
-
-```
-Locust
-   │
-   ▼
-Agent Host (FastAPI) ─── /metrics ───▶ Prometheus ───▶ Grafana
-   │
-   ▼
-ToolExecutor (MCP Client)
-   │
-   ▼
-MCP Tool Server (FastMCP)
-```
-
-All components are containerized, instrumented, traceable, and reproducible.
-
----
-
-## Project structure
-
-- [src/](src/)
-  - [orchestrator/](src/orchestrator/) — Agent host, pipeline, tool executor
-  - [model_adapters/](src/model_adapters/) — Mock / OpenAI adapters
-  - [servers/](src/servers/) — MCP tool servers (Echo, etc.)
-  - [metrics/](src/metrics/) — Prometheus metric definitions and exporters
-  - [utils/](src/utils/) — Async JSONL logger and helpers
-  - [core/](src/core/) — ContextVars (`trace_id`) and core types
-
-- [benchmarks/](benchmarks/)
-  - [workloads/](benchmarks/workloads/) — Workload JSON definitions (W1–W7)
-  - [locustfiles/](benchmarks/locustfiles/) — Load test scripts
-
-- [infrastructure/](infrastructure/)
-  - [docker/](infrastructure/docker/) — Dockerfiles
-  - [prometheus/](infrastructure/prometheus/) — Prometheus config
-  - [grafana/](infrastructure/grafana/) — Optional dashboards
-
-- [data/](data/)
-  - [logs/](data/logs/) — JSONL logs (persistent)
-  - [prometheus/](data/prometheus/) — Prometheus TSDB
-  - [results/](data/results/) — Aggregated experiment outputs
-  - [schemas/](data/schemas/) — Log & result schemas
-
-- [scripts/](scripts/) — `summarize_run.py` aggregates logs into CSV
-
-- `docker-compose.yml`
-- `requirements.txt`
-- `README.md` (this file)
-
----
-
-## Workloads (canonical)
-
-The canonical workload suite (located in [benchmarks/workloads/](benchmarks/workloads/)):
-
-- W1 — Pure MCP overhead
-- W2 — Light tool (~10 ms)
-- W3 — Medium tool (~100 ms)
-- W4 — Deep workflow (depth = 5)
-- W5 — Large payload (~1 MB)
-- W6 — Multi-tool workflow
-- W7 — Mixed stress
-
-Each workload is a JSON file (schema in `benchmarks/workloads/`) and is version-controlled for reproducibility.
-
----
-
-## Observability
-
-**Metrics**
-
-Prometheus scrapes the Agent Host metrics endpoint:
-
-```
-http://agent_host:8000/metrics
-```
-
-Key metric histogram:
-
-- `mcp_latency_ms{component=...}` (labels: `model`, `tool`, `protocol`, `pipeline`, `total`)
-
-**Logs**
-
-Structured JSONL logs are written to persistent storage:
-
-```
-data/logs/
- ├── agent_host.jsonl
- ├── tool_executor.jsonl
- └── echo_tool.jsonl
-```
-
-**Tracing**
-
-Each request is assigned a `trace_id` and correlated across Agent, Executor, and Tool Server via `_meta.trace_id`.
-
----
-
-## Running the system (Docker — recommended)
+## Setup Guide
 
 ### Prerequisites
 
-- Docker
-- Docker Compose
+- **Docker:** Version 20.10 or higher
+- **Docker Compose:** Version 2.0 or higher
+- **System Requirements:** Minimum 4GB RAM, 10GB available disk space
 
-### Step-by-Step Safe Run Plan
+### Installation
 
-Follow these steps from the project root to safely start and verify the system.
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd mcp-scalability-analysis
+   ```
 
-1) Build & start everything
+2. **Configure environment (optional):**
+   
+   Create a `.env` file to customize model backend:
+   ```bash
+   # Example: Use OpenAI
+   MODEL_BACKEND=openai
+   OPENAI_API_KEY=sk-your-api-key
+   OPENAI_MODEL=gpt-4o-mini
+   
+   # Example: Use Ollama (default)
+   MODEL_BACKEND=ollama
+   OLLAMA_MODEL=llama3.2:3b
+   OLLAMA_URL=http://ollama:11434
+   
+   # Example: Use Mock adapter for testing
+   MODEL_BACKEND=mock
+   ```
 
-```bash
-docker-compose up --build
-```
+3. **Build and start services:**
+   ```bash
+   docker-compose up --build -d
+   ```
 
-Wait until you see service health/started messages in logs (these may appear in `docker-compose` output):
+4. **Verify deployment:**
+   ```bash
+   docker-compose ps
+   ```
+   
+   Expected output:
+   ```
+   NAME         STATUS                    PORTS
+   agent_host   Up                        0.0.0.0:8000->8000/tcp
+   echo_tool    Up (healthy)              0.0.0.0:8001->8001/tcp
+   grafana      Up                        0.0.0.0:3000->3000/tcp
+   ollama       Up                        0.0.0.0:11434->11434/tcp
+   prometheus   Up                        0.0.0.0:9090->9090/tcp
+   ```
 
-- `echo_tool healthy`
-- `agent_host started`
-- `ollama running`
-- `prometheus running`
-- `grafana running`
+5. **Initialize Ollama model (if using Ollama backend):**
+   ```bash
+   docker exec -it ollama ollama pull llama3.2:3b
+   ```
 
-2) Pull the model inside Ollama (new terminal)
+### Service Endpoints
 
-```bash
-docker exec -it ollama ollama pull llama3.1:8b
-```
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Agent Host API | http://localhost:8000 | Main API endpoint |
+| Agent Host Docs | http://localhost:8000/docs | Interactive API documentation |
+| Metrics Endpoint | http://localhost:8000/metrics | Prometheus metrics |
+| Prometheus UI | http://localhost:9090 | Metrics query interface |
+| Grafana | http://localhost:3000 | Visualization dashboards |
+| Ollama API | http://localhost:11434 | Local LLM service |
 
-(Replace `llama3.1:8b` with the model you configured.)
+## Usage Guide
 
-3) Check Agent Host
+### Running Performance Tests
 
-Open:
+1. **Execute a single workload:**
+   ```bash
+   curl -X POST http://localhost:8000/run \
+     -H "Content-Type: application/json" \
+     -d @benchmarks/workloads/w1_pure_mcp.json
+   ```
 
-```
-http://localhost:8000/docs
-```
+2. **Start load testing:**
+   ```bash
+   # Install Locust (if not already installed)
+   pip install locust
+   
+   # Launch Locust
+   locust -f benchmarks/locustfiles/locustfile.py
+   ```
+   
+   Access Locust UI at http://localhost:8089 and configure test parameters:
+   - Number of users: 10-1000 (depending on test scenario)
+   - Spawn rate: 10 users/second
+   - Host: http://localhost:8000
 
-If you see the Swagger UI the Agent Host is responding.
+3. **Monitor metrics in real-time:**
+   - **Prometheus:** Navigate to http://localhost:9090 and query `mcp_latency_ms_bucket`
+   - **Grafana:** Login at http://localhost:3000 (default credentials: `admin` / `admin`)
 
-4) Send one test request
+### Analyzing Results
 
-```bash
-curl -X POST http://localhost:8000/run \
-  -H "Content-Type: application/json" \
-  -d @benchmarks/workloads/w1_pure_mcp.json
-```
+1. **View structured logs:**
+   ```bash
+   # Agent host logs
+   cat data/logs/agent_host.jsonl | jq '.'
+   
+   # Tool execution logs
+   cat data/logs/tool_executor.jsonl | jq '.'
+   ```
 
-Expected:
+2. **Generate aggregated metrics:**
+   ```bash
+   python scripts/summarize_run.py
+   ```
+   
+   Output location: `data/results/latest/summary.csv`
+   
+   The summary includes:
+   - Latency percentiles (p50, p95, p99)
+   - Throughput (requests per second)
+   - Protocol overhead percentage
+   - Resource utilization metrics
 
-- You receive a `trace_id` in the response
-- You receive a successful response body
-- No errors printed to the agent host or tool logs
+3. **Query Prometheus metrics:**
+   ```promql
+   # Average latency by component
+   rate(mcp_latency_ms_sum[5m]) / rate(mcp_latency_ms_count[5m])
+   
+   # 95th percentile latency
+   histogram_quantile(0.95, rate(mcp_latency_ms_bucket[5m]))
+   ```
 
-5) Check logs
+### Workload Profiles
 
-```bash
-ls data/logs/
-```
+The platform includes seven canonical workload profiles:
 
-You should see these files (and they should not be empty):
+| Workload | Description | Primary Metric |
+|----------|-------------|----------------|
+| W1 | Pure MCP overhead | Protocol efficiency |
+| W2 | Light tool invocation (10ms) | Tool execution baseline |
+| W3 | Medium tool invocation (100ms) | Tool scaling behavior |
+| W4 | Deep workflow chain (depth=5) | Workflow orchestration overhead |
+| W5 | Large payload (1MB) | Serialization performance |
+| W6 | Multi-tool orchestration | Concurrent tool execution |
+| W7 | Mixed workload stress test | System saturation characteristics |
 
-- `agent_host.jsonl`
-- `tool_executor.jsonl`
-- `echo_tool.jsonl`
+### Troubleshooting
 
-6) Check metrics
+1. **Check service health:**
+   ```bash
+   docker-compose logs agent_host
+   docker-compose logs echo_tool
+   docker-compose logs ollama
+   ```
 
-Open:
+2. **Restart services:**
+   ```bash
+   docker-compose restart
+   ```
 
-```
-http://localhost:8000/metrics
-```
+3. **Complete reset:**
+   ```bash
+   docker-compose down -v
+   docker-compose up --build
+   ```
 
-And Prometheus:
+4. **Verify connectivity:**
+   ```bash
+   # Test Agent Host
+   curl http://localhost:8000/metrics
+   
+   # Test Ollama
+   curl http://localhost:11434/api/tags
+   ```
 
-```
-http://localhost:9090
-```
+## Experimental Methodology
 
-Search in Prometheus for the histogram buckets, e.g. `mcp_latency_ms_bucket`.
+For rigorous performance analysis, follow these guidelines:
 
-7) Check Grafana
-
-Open:
-
-```
-http://localhost:3000
-```
-
-Login: `admin` / `admin` (default)
-
-You can skip dashboards for now; Grafana is only needed to view long-term metrics and dashboards.
-
-Troubleshooting
-
-If something fails, collect service logs with:
-
-```bash
-docker-compose logs agent_host
-docker-compose logs ollama
-docker-compose logs echo_tool
-```
-
-Add these logs to any issue or share them when asking for help.
+- **Warm-up Period:** 60 seconds before measurement
+- **Measurement Duration:** 3-5 minutes per data point
+- **Repetitions:** Minimum 3 runs, report median values
+- **Variable Control:** Vary one independent variable per experiment
+- **Resource Isolation:** Run experiments on dedicated infrastructure
+- **Data Persistence:** All logs and metrics are persisted in `data/` directory
 
 ---
 
-## Running load tests (Locust)
 
-Start Locust:
-
-```bash
-locust -f benchmarks/locustfiles/locustfile.py
-```
-
-Open the Locust UI at `http://localhost:8089` and configure users/spawn rates (e.g., 10 → 100 → 500 → 1000).
-
----
-
-## Aggregating & analyzing results
-
-Aggregate logs with the provided script:
-
-```bash
-python scripts/summarize_run.py
-```
-
-Outputs (example):
-
-```
-data/results/latest/summary.csv
-```
-
-`summary.csv` contains p50/p95/p99, throughput, and derived metrics such as protocol overhead %.
-
----
-
-## Scientific methodology (recommended)
-
-- Warm-up: 60 seconds
-- Run duration: 3–5 minutes (steady-state) per point
-- Repeat: 3 runs; use median values
-- Vary one independent variable at a time (concurrency, workload, tool count, resource limits)
-
----
-
-## KPIs measured
-
-- Latency decomposition (model / tool / protocol / pipeline)
-- Throughput (RPS)
-- Concurrency limit and saturation behavior
-- Tool invocation cost
-- Model routing overhead
-- MCP protocol overhead
-- Resource utilization trends (CPU/memory)
-
----
-
-## Reproducibility
-
-Everything runs via Docker and persists logs/metrics to `data/` so experiments can be resumed, repeated, and audited.
-
----
-
-## Optional local (non-Docker) run
-
-```bash
-pip install -r requirements.txt
-
-# Start echo tool (example)
-python -m src.servers.echo_tool.server
-
-# Start agent
-uvicorn src.orchestrator.agent_host:app --reload
-```
-
----
-
-## Project status
-
-- ✅ Infrastructure: Docker compose + Prometheus/Grafana persistence
-- ✅ Workloads defined (W1–W7)
-- ✅ Tracing + structured logs implemented
-- ✅ Ready for large-scale experiments
-
----
-
-## License & contribution
-
-This repository is intended for research use. Add contribution guidelines or license as appropriate for your organization.
-
----
-
-If you want, I can also add a short `docker-compose.override.yml` for local quick-start and a `README_RUN.md` with step-by-step quick commands. Let me know which you'd prefer next.

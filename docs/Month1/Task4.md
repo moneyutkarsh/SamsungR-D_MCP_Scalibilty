@@ -125,4 +125,3 @@ Compare runs across transports (SSE vs stdio), adapters (MockAdapter vs real), a
 
 ---
 
-*File updated to a structured documentation format.*

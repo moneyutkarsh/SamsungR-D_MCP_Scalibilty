@@ -146,4 +146,3 @@ Task 6 upgrades the MCP benchmarking system into a reproducible data pipeline th
 
 ---
 
-*File updated to a structured documentation format.*

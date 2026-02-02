@@ -125,4 +125,3 @@ Task 3 builds the instrumented, MCP-compliant agent→tool execution loop used f
 
 ---
 
-*File updated to a structured documentation format.*

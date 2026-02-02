@@ -149,4 +149,3 @@ Task 5 defines a minimal, orthogonal, and reproducible workload suite and experi
 
 ---
 
-*File updated to a structured documentation format.*

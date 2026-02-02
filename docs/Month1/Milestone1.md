@@ -76,10 +76,3 @@ Logs: append-only JSONL files; metrics: Prometheus histograms and counters for l
 
 ---
 
-### Next steps (recommended)
-
-- Create example `docker-compose.override.yml` for local quick-start
-- Add a sample Locust scenario and a `README.md` with run instructions
-- Run a short benchmark (W1 with Mock adapter) and commit the `data/results/` sample
-
-*Milestone 1 report updated to a structured Markdown format.*
