@@ -2,7 +2,7 @@
   "workload": {
     "name": "w7_mixed",
     "description": "Mixed random workload",
-    "model": "mock",
+    "model": "ollama",
     "workflow": ["echo", "echo", "echo"],
     "tool_params": { "delay_ms": 50, "payload_size_kb": 128 },
     "payload": { "text": "mixed" }
