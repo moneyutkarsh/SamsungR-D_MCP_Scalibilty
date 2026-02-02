@@ -7,7 +7,8 @@ from utils.jsonl_logger import JSONLLogger
 
 mcp = FastMCP("EchoServer")
 
-tool_logger = JSONLLogger("/data/logs/echo_tool.jsonl")
+echo_log_path = os.getenv("ECHO_LOG_PATH", "data/logs/echo_tool.jsonl")
+tool_logger = JSONLLogger(echo_log_path)
 
 @mcp.tool()
 async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1):
@@ -43,7 +44,13 @@ async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1):
     }
 
 if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+    
+    # Add src to path for imports
+    src_path = Path(__file__).parent.parent.parent
+    sys.path.insert(0, str(src_path))
+    
     import uvicorn
-    # FastMCP creates an internal app that needs to be accessed via the mcp object
-    # We run uvicorn directly pointing to the module
+    # Run the FastMCP server
     uvicorn.run("servers.echo_tool.server:mcp", host="0.0.0.0", port=8001)

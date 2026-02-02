@@ -43,7 +43,7 @@ elif MODEL_BACKEND == "ollama":
     print("Using OllamaAdapter")
     model = OllamaAdapter(
         model=os.getenv("OLLAMA_MODEL", "phi3:mini"),
-        base_url=os.getenv("OLLAMA_URL", "http://ollama:11434")
+        base_url=os.getenv("OLLAMA_URL", "http://localhost:11434")
     )
 
 elif MODEL_BACKEND == "openai":
@@ -60,7 +60,8 @@ else:
 pipeline = AgentPipeline(model, executor)
 
 # Async JSONL logger
-request_logger = JSONLLogger("/data/logs/agent_host.jsonl")
+log_path = os.getenv("LOG_PATH", "data/logs/agent_host.jsonl")
+request_logger = JSONLLogger(log_path)
 
 # -------------------------------
 # FastAPI app lifecycle
@@ -78,8 +79,13 @@ app = FastAPI(lifespan=lifespan)
 Instrumentator().instrument(app).expose(app)
 
 # -------------------------------
-# API Endpoint
+# API Endpoints
 # -------------------------------
+
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy"}
 
 @app.post("/run")
 async def run(req: RunRequest):

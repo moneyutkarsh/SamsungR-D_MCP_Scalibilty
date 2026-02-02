@@ -16,13 +16,14 @@ class ToolExecutor:
 
         # Tool registry: tool_name -> server_url
         self.registry = {
-            "echo": os.getenv("ECHO_TOOL_URL", "http://echo_tool:8001"),
+            "echo": os.getenv("ECHO_TOOL_URL", "http://localhost:8001"),
             # Future:
             # "math": os.getenv("MATH_TOOL_URL"),
             # "search": os.getenv("SEARCH_TOOL_URL"),
         }
 
-        self.tool_logger = JSONLLogger("/data/logs/tool_executor.jsonl")
+        tool_log_path = os.getenv("TOOL_LOG_PATH", "data/logs/tool_executor.jsonl")
+        self.tool_logger = JSONLLogger(tool_log_path)
 
     async def initialize_servers(self):
         # MCP handshake warm-up for all tools

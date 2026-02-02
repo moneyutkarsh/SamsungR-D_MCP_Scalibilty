@@ -6,3 +6,4 @@ prometheus-fastapi-instrumentator
 pydantic
 mcp
 orjson
+python-dotenv
