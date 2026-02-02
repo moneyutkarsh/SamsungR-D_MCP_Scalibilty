@@ -1,8 +1,10 @@
 {
-  "name": "w2_light_tool",
-  "description": "Single tool, 10ms delay",
-  "model": "mock",
-  "workflow": ["echo"],
-  "tool_params": { "delay_ms": 10, "payload_size_kb": 1 },
-  "payload": { "text": "hello" }
+  "workload": {
+    "name": "w2_light_tool",
+    "description": "Single tool, 10ms delay",
+    "model": "mock",
+    "workflow": ["echo"],
+    "tool_params": { "delay_ms": 10, "payload_size_kb": 1 },
+    "payload": { "text": "hello" }
+  }
 }

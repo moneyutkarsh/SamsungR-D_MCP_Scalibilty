@@ -42,7 +42,7 @@ if MODEL_BACKEND == "mock":
 elif MODEL_BACKEND == "ollama":
     print("Using OllamaAdapter")
     model = OllamaAdapter(
-        model=os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
+        model=os.getenv("OLLAMA_MODEL", "phi3:mini"),
         base_url=os.getenv("OLLAMA_URL", "http://ollama:11434")
     )
 

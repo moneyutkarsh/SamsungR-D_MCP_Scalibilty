@@ -54,7 +54,7 @@ services:
       # 🔥 Model selection
       - MODEL_BACKEND=ollama
       - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=llama3.2:3b
+      - OLLAMA_MODEL=phi3:mini
 
     volumes:
       - ./data/logs:/data/logs
