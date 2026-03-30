@@ -83,7 +83,7 @@ htmlcov/
 *.sqlite
 *.db
 *.parquet
-*.csv
+
 
 # -----------------------------
 # Node (if added later)
