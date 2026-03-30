@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-30T15:35:08.988009+00:00",
+  "workload": "w4_deep_workflow",
+  "users": 10,
+  "repeat": 1,
+  "requests_per_user": 5,
+  "total_requests": 50,
+  "success_count": 50,
+  "error_count": 0,
+  "elapsed_s": 0.2901644999983546,
+  "throughput_rps": 172.31604831150443
+}

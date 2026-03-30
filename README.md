@@ -156,48 +156,64 @@ The platform measures the following performance characteristics:
    - Protocol overhead percentage
    - Resource utilization metrics
 
-3. **Generate complete baseline dataset (Task 1):**
-    ```bash
-    # Ensure MODEL_BACKEND=mock in agent_host
-    python scripts/run_baseline_dataset.py \
-       --host http://localhost:8000 \
-       --prometheus-url http://localhost:9090 \
-       --users 1 10 50 100 200 500 \
-       --repeats 3 \
-       --requests-per-user 20
-    ```
+3. **Generate complete baseline dataset (Task 1, Mock):**
+   ```powershell
+   $env:MODEL_BACKEND="mock"
+   python scripts/run_baseline_dataset.py `
+     --host http://localhost:8000 `
+     --prometheus-url http://localhost:9090 `
+     --users 1 10 50 100 200 500 `
+     --repeats 1 `
+     --requests-per-user 20
+   ```
 
-    Output location: `data/results/baseline_mockadapter/`
+   Output location: `data/results/baseline_mockadapter/`
 
-    The dataset includes:
-    - Full coverage report (`dataset_coverage.csv`) for W1-W7 × user levels × repeats
-    - Per-repeat request-level JSONL (`experiments/.../requests.jsonl`)
-    - Per-repeat filtered component logs (`filtered_logs/*.jsonl`)
-    - Prometheus snapshots before/after each repeat (`prometheus_before.json`, `prometheus_after.json`)
-    - Statistical summaries (`summary_statistics_long.csv`, `summary_statistics_wide.csv`)
+   The dataset includes:
+   - Full coverage report (`dataset_coverage.csv`) for W1-W7 x user levels x repeats
+   - Per-repeat request-level JSONL (`experiments/.../requests.jsonl`)
+   - Per-repeat filtered component logs (`filtered_logs/*.jsonl`)
+   - Prometheus snapshots before/after each repeat (`prometheus_before.json`, `prometheus_after.json`)
+   - Statistical summaries (`summary_statistics_long.csv`, `summary_statistics_wide.csv`)
 
-    Statistical summary fields include:
-    - Median
-    - IQR (Q3-Q1)
-    - 95% CI for median (bootstrap)
-    - Coefficient of Variation (CV%)
+   Statistical summary fields include:
+   - Median
+   - IQR (Q3-Q1)
+   - 95% CI for median (bootstrap)
+   - Coefficient of Variation (CV%)
 
-4. **Generate initial real-model dataset (Task 2):**
-    ```bash
-    python scripts/run_task2_real_model_dataset.py \
-       --model phi3:mini \
-       --users 10 50 100 \
-       --repeats 3 \
-       --requests-per-user 15
-    ```
+4. **Generate initial real-model dataset and comparison (Task 2):**
+   ```powershell
+   .\scripts\fresh_run.ps1 -Mode task2 -Repeats 1 -KeepBaseline
+   ```
 
-    Output location: `data/results/task2_initial_real_model/`
+   Notes:
+   - `-KeepBaseline` keeps `data/results/baseline_mockadapter/` untouched.
+   - Task 2 writes fresh output to `data/results/task2_initial_real_model/`.
+   - Task 2 runs W1-W3 with both backends (mock and Ollama) and produces comparison CSVs.
 
-    The dataset includes:
-    - Mock baseline subset (`mock/`) for W1-W3
-    - Ollama subset (`ollama/`) for W1-W3
-    - Full comparison table (`mock_vs_ollama_comparison.csv`)
-    - Key metric comparison (`mock_vs_ollama_comparison_key_metrics.csv`)
+   Output location: `data/results/task2_initial_real_model/`
+
+   The dataset includes:
+   - Mock subset (`mock/`) for W1-W3
+   - Ollama subset (`ollama/`) for W1-W3
+   - Full comparison table (`mock_vs_ollama_comparison.csv`)
+   - Key metric comparison (`mock_vs_ollama_comparison_key_metrics.csv`)
+
+5. **One-command helper script examples (Windows PowerShell):**
+   ```powershell
+   # Baseline only
+   .\scripts\fresh_run.ps1 -Mode baseline -Repeats 1
+
+   # Task2 only, keep previously generated baseline results
+   .\scripts\fresh_run.ps1 -Mode task2 -Repeats 1 -KeepBaseline
+
+   # Baseline + Task2 in one run
+   .\scripts\fresh_run.ps1 -Mode both -Repeats 1
+
+   # Optional: free Docker cache during run
+   .\scripts\fresh_run.ps1 -Mode task2 -Repeats 1 -KeepBaseline -PruneDockerCache
+   ```
 
 3. **Query Prometheus metrics:**
    ```promql

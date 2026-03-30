@@ -1,67 +1,92 @@
 {
-  "dashboard": {
-    "title": "MCP Scalability Dashboard",
-    "panels": [
-      {
-        "id": 1,
-        "title": "Request Rate (RPS)",
-        "type": "timeseries",
-        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "rate(http_requests_total[1m])",
-            "legendFormat": "Requests/sec"
-          }
-        ]
-      },
-      {
-        "id": 2,
-        "title": "Response Time Percentiles",
-        "type": "timeseries",
-        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[1m]))",
-            "legendFormat": "P50"
-          },
-          {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1m]))",
-            "legendFormat": "P95"
-          },
-          {
-            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[1m]))",
-            "legendFormat": "P99"
-          }
-        ]
-      },
-      {
-        "id": 3,
-        "title": "Total Requests",
-        "type": "stat",
-        "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
-        "targets": [
-          {
-            "expr": "sum(http_requests_total)"
-          }
-        ]
-      },
-      {
-        "id": 4,
-        "title": "Error Rate",
-        "type": "timeseries",
-        "gridPos": {"x": 6, "y": 8, "w": 18, "h": 8},
-        "targets": [
-          {
-            "expr": "rate(http_requests_total{status=~\"5..\"}[1m])",
-            "legendFormat": "Errors/sec"
-          }
-        ]
-      }
-    ],
-    "time": {
-      "from": "now-15m",
-      "to": "now"
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Rate (RPS)",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "rate(mcp_requests_total[1m])",
+          "legendFormat": "Requests/sec",
+          "refId": "A"
+        }
+      ]
     },
-    "refresh": "5s"
-  }
+    {
+      "id": 2,
+      "title": "Response Time Percentiles",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(mcp_latency_ms_bucket{component=\"total\"}[1m]))",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(mcp_latency_ms_bucket{component=\"total\"}[1m]))",
+          "legendFormat": "P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(mcp_latency_ms_bucket{component=\"total\"}[1m]))",
+          "legendFormat": "P99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Total Requests",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "sum(mcp_requests_total)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Latency By Component (avg ms)",
+      "type": "timeseries",
+      "gridPos": {"x": 6, "y": 8, "w": 18, "h": 8},
+      "targets": [
+        {
+          "expr": "sum by (component) (rate(mcp_latency_ms_sum[1m])) / sum by (component) (rate(mcp_latency_ms_count[1m]))",
+          "legendFormat": "{{component}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "mcp",
+    "scalability"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "MCP Scalability Dashboard",
+  "uid": "mcp-scalability",
+  "version": 1,
+  "weekStart": ""
 }

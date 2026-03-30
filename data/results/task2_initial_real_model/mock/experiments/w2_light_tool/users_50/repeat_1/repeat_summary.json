@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-30T15:57:45.352773+00:00",
+  "workload": "w2_light_tool",
+  "users": 50,
+  "repeat": 1,
+  "requests_per_user": 5,
+  "total_requests": 250,
+  "success_count": 250,
+  "error_count": 0,
+  "elapsed_s": 2.732910800001264,
+  "throughput_rps": 91.47755572552327
+}

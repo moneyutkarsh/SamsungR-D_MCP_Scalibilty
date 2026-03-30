@@ -21,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Task 2: Build initial real-model dataset (Mock vs Ollama) for W1-W3."
     )
-    parser.add_argument("--model", default="phi3:mini", help="Ollama model name")
+    parser.add_argument("--model", default="llama3.2:3b", help="Ollama model name")
     parser.add_argument("--users", nargs="+", type=int, default=[10, 50, 100], help="Concurrency levels")
     parser.add_argument("--repeats", type=int, default=3, help="Repeats per config")
     parser.add_argument("--requests-per-user", type=int, default=15, help="Requests per user per repeat")

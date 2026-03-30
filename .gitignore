@@ -25,7 +25,6 @@ pip-wheel-metadata/
 # Logs & Experiment Outputs
 # -----------------------------
 data/logs/
-data/results/
 data/prometheus/
 data/ollama/
 

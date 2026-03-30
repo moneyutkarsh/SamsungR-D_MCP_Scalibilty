@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-03-30T15:57:20.755480+00:00",
+  "host": "http://localhost:8000",
+  "prometheus_url": "http://localhost:9090",
+  "users": [
+    10,
+    50,
+    100
+  ],
+  "workloads": [
+    "benchmarks/workloads/w1_pure_mcp.json",
+    "benchmarks/workloads/w2_light_tool.json",
+    "benchmarks/workloads/w3_medium_tool.json"
+  ],
+  "repeats": 1,
+  "requests_per_user": 5,
+  "warmup_seconds": 2.0,
+  "ci_bootstrap_samples": 2000,
+  "model_backend_expected": "mock"
+}

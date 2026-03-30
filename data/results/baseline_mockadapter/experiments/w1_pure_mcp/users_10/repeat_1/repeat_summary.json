@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-30T15:31:09.921536+00:00",
+  "workload": "w1_pure_mcp",
+  "users": 10,
+  "repeat": 1,
+  "requests_per_user": 5,
+  "total_requests": 50,
+  "success_count": 50,
+  "error_count": 0,
+  "elapsed_s": 0.29767569999967236,
+  "throughput_rps": 167.96802695031886
+}
