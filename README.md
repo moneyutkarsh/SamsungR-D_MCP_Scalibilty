@@ -156,6 +156,49 @@ The platform measures the following performance characteristics:
    - Protocol overhead percentage
    - Resource utilization metrics
 
+3. **Generate complete baseline dataset (Task 1):**
+    ```bash
+    # Ensure MODEL_BACKEND=mock in agent_host
+    python scripts/run_baseline_dataset.py \
+       --host http://localhost:8000 \
+       --prometheus-url http://localhost:9090 \
+       --users 1 10 50 100 200 500 \
+       --repeats 3 \
+       --requests-per-user 20
+    ```
+
+    Output location: `data/results/baseline_mockadapter/`
+
+    The dataset includes:
+    - Full coverage report (`dataset_coverage.csv`) for W1-W7 × user levels × repeats
+    - Per-repeat request-level JSONL (`experiments/.../requests.jsonl`)
+    - Per-repeat filtered component logs (`filtered_logs/*.jsonl`)
+    - Prometheus snapshots before/after each repeat (`prometheus_before.json`, `prometheus_after.json`)
+    - Statistical summaries (`summary_statistics_long.csv`, `summary_statistics_wide.csv`)
+
+    Statistical summary fields include:
+    - Median
+    - IQR (Q3-Q1)
+    - 95% CI for median (bootstrap)
+    - Coefficient of Variation (CV%)
+
+4. **Generate initial real-model dataset (Task 2):**
+    ```bash
+    python scripts/run_task2_real_model_dataset.py \
+       --model phi3:mini \
+       --users 10 50 100 \
+       --repeats 3 \
+       --requests-per-user 15
+    ```
+
+    Output location: `data/results/task2_initial_real_model/`
+
+    The dataset includes:
+    - Mock baseline subset (`mock/`) for W1-W3
+    - Ollama subset (`ollama/`) for W1-W3
+    - Full comparison table (`mock_vs_ollama_comparison.csv`)
+    - Key metric comparison (`mock_vs_ollama_comparison_key_metrics.csv`)
+
 3. **Query Prometheus metrics:**
    ```promql
    # Average latency by component

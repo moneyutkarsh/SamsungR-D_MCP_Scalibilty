@@ -52,9 +52,9 @@ services:
       - ENVIRONMENT=docker
 
       # 🔥 Model selection
-      - MODEL_BACKEND=ollama
-      - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=phi3:mini
+      - MODEL_BACKEND=${MODEL_BACKEND:-ollama}
+      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-phi3:mini}
 
     volumes:
       - ./data/logs:/data/logs

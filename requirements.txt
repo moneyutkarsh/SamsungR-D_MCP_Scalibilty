@@ -7,3 +7,5 @@ pydantic
 mcp
 orjson
 python-dotenv
+numpy
+pandas
