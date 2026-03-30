@@ -9,3 +9,6 @@ orjson
 python-dotenv
 numpy
 pandas
+scipy
+matplotlib
+seaborn
