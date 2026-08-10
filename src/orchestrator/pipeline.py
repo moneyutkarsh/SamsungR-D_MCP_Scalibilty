@@ -18,7 +18,13 @@ class AgentPipeline:
         tool_schemas = workload.get("tool_schemas", [])
 
         # ---- Model phase ----
-        model_resp = await self.model.generate(prompt=prompt, tools=tool_schemas)
+        try:
+            model_resp = await asyncio.wait_for(
+                self.model.generate(prompt=prompt, tools=tool_schemas),
+                timeout=60.0
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError("Model generation timed out")
         model_latency_ms = model_resp.metadata.total_latency_ms
 
         tool_results = []
@@ -82,8 +88,13 @@ class AgentPipeline:
             return await self.tools.call_mcp_tool(tool_name=tool_name, args=args, transport=self.transport)
 
         if execution_mode == "parallel":
+            # Bounded fan-out to protect shared resources
+            sem = asyncio.Semaphore(10)
+            async def sem_call(i, name):
+                async with sem:
+                    return await call_tool(i, name)
             return await asyncio.gather(
-                *(call_tool(index, tool_name) for index, tool_name in enumerate(workflow))
+                *(sem_call(index, tool_name) for index, tool_name in enumerate(workflow))
             )
 
         results = []
@@ -167,7 +178,14 @@ class AgentPipeline:
             full_prompt = json.dumps(conversation_history)
             
             # Call model again
-            current_resp = await self.model.generate(prompt=full_prompt, tools=tools)
+            try:
+                current_resp = await asyncio.wait_for(
+                    self.model.generate(prompt=full_prompt, tools=tools),
+                    timeout=60.0
+                )
+            except asyncio.TimeoutError:
+                logging.warning("Iterative model generation timed out")
+                break
             additional_latency_ms += current_resp.metadata.total_latency_ms
             additional_cost_usd += getattr(current_resp.metadata, "cost_usd", 0.0)
 

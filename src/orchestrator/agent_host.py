@@ -116,51 +116,52 @@ async def run(req: RunRequest):
     # Set context var for this request
     token = request_trace_id.set(trace_id)
 
-    MCP_REQUESTS.inc()
+    try:
+        MCP_REQUESTS.inc()
 
-    start = time.perf_counter()
-    workload = req.workload.dict(exclude_none=True)
-    
-    # Configure transport for this request dynamically
-    transport = workload.get("transport", "sse")
-
-    # Select model backend dynamically based on workload payload
-    requested_model = workload.get("model", "mock")
-    if requested_model not in adapters:
-        # Fallback if specific api key was missing or unavailable
-        print(f"Warning: requested model {requested_model} not available, falling back to mock")
-        requested_model = "mock"
+        start = time.perf_counter()
+        workload = req.workload.dict(exclude_none=True)
         
-    pipeline = AgentPipeline(adapters[requested_model], executor, transport=transport)
+        # Configure transport for this request dynamically
+        transport = workload.get("transport", "sse")
 
-    result = await pipeline.run_workload(workload)
-    total_ms = (time.perf_counter() - start) * 1000
+        # Select model backend dynamically based on workload payload
+        requested_model = workload.get("model", "mock")
+        if requested_model not in adapters:
+            # Fallback if specific api key was missing or unavailable
+            print(f"Warning: requested model {requested_model} not available, falling back to mock")
+            requested_model = "mock"
+            
+        pipeline = AgentPipeline(adapters[requested_model], executor, transport=transport)
 
-    m = result["metrics"]
+        result = await pipeline.run_workload(workload)
+        total_ms = (time.perf_counter() - start) * 1000
 
-    # Prometheus metrics
-    MCP_LATENCY.labels(component="total").observe(total_ms)
-    MCP_LATENCY.labels(component="model").observe(m["model_latency_ms"])
-    MCP_LATENCY.labels(component="tool").observe(m["tool_total_ms"])
-    MCP_LATENCY.labels(component="protocol").observe(m["mcp_protocol_overhead_ms"])
-    MCP_LATENCY.labels(component="pipeline").observe(m["pipeline_overhead_ms"])
+        m = result["metrics"]
 
-    cost = m.get("cost_usd", 0.0)
+        # Prometheus metrics
+        MCP_LATENCY.labels(component="total").observe(total_ms)
+        MCP_LATENCY.labels(component="model").observe(m["model_latency_ms"])
+        MCP_LATENCY.labels(component="tool").observe(m["tool_total_ms"])
+        MCP_LATENCY.labels(component="protocol").observe(m["mcp_protocol_overhead_ms"])
+        MCP_LATENCY.labels(component="pipeline").observe(m["pipeline_overhead_ms"])
 
-    # Async non-blocking structured log
-    await request_logger.log({
-        "trace_id": trace_id,
-        "environment": ENVIRONMENT,
-        "workload": workload.get("name", "unknown"),
-        "metrics": m,
-        "model_backend": MODEL_BACKEND,
-        "cost_usd": cost
-    })
+        cost = m.get("cost_usd", 0.0)
 
-    # Reset context var
-    request_trace_id.reset(token)
+        # Async non-blocking structured log
+        await request_logger.log({
+            "trace_id": trace_id,
+            "environment": ENVIRONMENT,
+            "workload": workload.get("name", "unknown"),
+            "metrics": m,
+            "model_backend": MODEL_BACKEND,
+            "cost_usd": cost
+        })
 
-    return {
-        "trace_id": trace_id,
-        "result": result
-    }
+        return {
+            "trace_id": trace_id,
+            "result": result
+        }
+    finally:
+        # Reset context var unconditionally
+        request_trace_id.reset(token)

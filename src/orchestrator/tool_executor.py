@@ -67,11 +67,11 @@ class ToolExecutor:
         ctx = self.stdio_sessions.pop(name, None)
         if ctx:
             try:
-                await ctx["session_cm"].__aexit__(None, None, None)
+                await asyncio.wait_for(ctx["session_cm"].__aexit__(None, None, None), timeout=5.0)
             except Exception as e:
                 print(f"Error closing session for {name}: {e}")
             try:
-                await ctx["cm"].__aexit__(None, None, None)
+                await asyncio.wait_for(ctx["cm"].__aexit__(None, None, None), timeout=5.0)
             except Exception as e:
                 print(f"Error closing process for {name}: {e}")
 
@@ -135,15 +135,15 @@ class ToolExecutor:
         session = self.stdio_sessions[tool_name]["session"]
         
         try:
-            result = await session.call_tool(tool_name, arguments=args)
-        except Exception as e:
-            print(f"[{trace_id}] Stdio session for {tool_name} failed ({e}). Respawning...")
+            result = await asyncio.wait_for(session.call_tool(tool_name, arguments=args), timeout=30.0)
+        except (Exception, asyncio.CancelledError) as e:
+            print(f"[{trace_id}] Stdio session for {tool_name} failed or timed out ({e}). Respawning...")
             async with self.stdio_locks[tool_name]:
                 if self.stdio_sessions.get(tool_name, {}).get("session") == session:
                     await self._stop_stdio_server(tool_name)
                     await self._start_stdio_server(tool_name)
                 session = self.stdio_sessions[tool_name]["session"]
-            result = await session.call_tool(tool_name, arguments=args)
+            result = await asyncio.wait_for(session.call_tool(tool_name, arguments=args), timeout=30.0)
             
         if result.content and len(result.content) > 0:
             text_out = result.content[0].text
@@ -162,11 +162,10 @@ class ToolExecutor:
         start_net = time.perf_counter()
 
         try:
-            # We enforce a timeout for safety to avoid zombie processes
             if transport == "sse":
                 data = await asyncio.wait_for(self._call_sse(tool_name, args, trace_id), timeout=30.0)
             else:
-                data = await asyncio.wait_for(self._call_stdio(tool_name, args, trace_id), timeout=30.0)
+                data = await self._call_stdio(tool_name, args, trace_id)
         except asyncio.TimeoutError:
             print(f"[{trace_id}] Timeout calling tool {tool_name} via {transport}")
             raise
