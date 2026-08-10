@@ -15,13 +15,16 @@ mcp = FastMCP("DBServer")
 db_log_path = os.getenv("DB_LOG_PATH", "data/logs/db_tool.jsonl")
 tool_logger = JSONLLogger(db_log_path)
 
-DB_TOOL_CALLS = Counter("db_tool_calls_total", "Total db tool calls")
-DB_TOOL_LATENCY = Histogram("db_tool_processing_ms", "DB tool processing latency", buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])
+DB_TOOL_CALLS = Counter("db_tool_calls_total", "Total db tool calls",
+    ["transport"]
+)
+DB_TOOL_LATENCY = Histogram("db_tool_processing_ms", "DB tool processing latency", ["transport"], buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])
 
 db_path = os.getenv("DB_TOOL_PATH", "data/tool_db.sqlite")
 
 @mcp.tool()
-async def query_db(query: str, trace_id: str = "none", step_index: int = 0):
+async def query_db(query: str, trace_id: str = "none", step_index: int = 0,
+    transport: str = "sse"):
     start = time.perf_counter()
     
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
@@ -47,8 +50,8 @@ async def query_db(query: str, trace_id: str = "none", step_index: int = 0):
 
     end = time.perf_counter()
     proc_ms = (end - start) * 1000
-    DB_TOOL_CALLS.inc()
-    DB_TOOL_LATENCY.observe(proc_ms)
+    DB_TOOL_CALLS.labels(transport=transport).inc()
+    DB_TOOL_LATENCY.labels(transport=transport).observe(proc_ms)
 
     await tool_logger.log({
         "trace_id": trace_id, "tool_name": "db", "step_index": step_index,

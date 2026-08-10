@@ -24,8 +24,8 @@
     "completion_per_1m": 1.25
   },
   "ollama:llama3.2:3b": {
-    "prompt_per_1m": 0.0,
-    "completion_per_1m": 0.0
+    "prompt_per_1m": 1.0,
+    "completion_per_1m": 2.0
   },
   "ollama:phi3:mini": {
     "prompt_per_1m": 0.20,

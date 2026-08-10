@@ -6,10 +6,11 @@ import logging
 from metrics.prometheus import MCP_WORKFLOW_DEPTH, MCP_TOOL_RECOVERY
 
 class AgentPipeline:
-    def __init__(self, model_adapter, tool_executor, transport: str = "sse"):
+    def __init__(self, model_adapter, tool_executor, transport: str = "sse", labels: dict = None):
         self.model = model_adapter
         self.tools = tool_executor
         self.transport = transport
+        self.labels = labels or {}
 
     async def run_workload(self, workload: dict):
         pipeline_start = time.perf_counter()
@@ -93,14 +94,18 @@ class AgentPipeline:
             async def sem_call(i, name):
                 async with sem:
                     return await call_tool(i, name)
-            return await asyncio.gather(
+            results = await asyncio.gather(
                 *(sem_call(index, tool_name) for index, tool_name in enumerate(workflow))
             )
+            MCP_WORKFLOW_DEPTH.labels(**self.labels).observe(1)
+            return results
 
         results = []
         for index, tool_name in enumerate(workflow):
             result = await call_tool(index, tool_name)
             results.append(result)
+            
+        MCP_WORKFLOW_DEPTH.labels(**self.labels).observe(1)
         return results
 
     async def _run_model_tool_calls_iterative(self, prompt: str, initial_resp, tools):
@@ -146,7 +151,7 @@ class AgentPipeline:
                 try:
                     res = await self.tools.call_mcp_tool(tool_name=tool_name, args=tool_args, transport=self.transport)
                     iteration_results.append(res)
-                    MCP_TOOL_RECOVERY.labels(status="recovered").inc()
+                    MCP_TOOL_RECOVERY.labels(status="recovered", **self.labels).inc()
                     
                     tool_message_contents.append({
                         "tool_call_id": call.get("id", ""),
@@ -155,7 +160,7 @@ class AgentPipeline:
                         "content": json.dumps(res.get("output", {}))
                     })
                 except Exception as e:
-                    MCP_TOOL_RECOVERY.labels(status="failed").inc()
+                    MCP_TOOL_RECOVERY.labels(status="failed", **self.labels).inc()
                     logging.warning(f"Tool execution failed: {e}")
                     # Error recovery mechanism: inform the model about the error
                     tool_message_contents.append({
@@ -190,7 +195,7 @@ class AgentPipeline:
             additional_cost_usd += getattr(current_resp.metadata, "cost_usd", 0.0)
 
         # Record metric
-        MCP_WORKFLOW_DEPTH.observe(iteration)
+        MCP_WORKFLOW_DEPTH.labels(**self.labels).observe(iteration)
 
         if iteration >= MAX_ITERATIONS and current_resp.tool_calls:
             logging.warning(f"Max iterations ({MAX_ITERATIONS}) reached. Aborting hallucination loop.")

@@ -14,19 +14,22 @@ mcp = FastMCP("SleepServer")
 sleep_log_path = os.getenv("SLEEP_LOG_PATH", "data/logs/sleep_tool.jsonl")
 tool_logger = JSONLLogger(sleep_log_path)
 
-SLEEP_TOOL_CALLS = Counter("sleep_tool_calls_total", "Total sleep tool calls")
-SLEEP_TOOL_LATENCY = Histogram("sleep_tool_processing_ms", "Sleep tool processing latency", buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])
+SLEEP_TOOL_CALLS = Counter("sleep_tool_calls_total", "Total sleep tool calls",
+    ["transport"]
+)
+SLEEP_TOOL_LATENCY = Histogram("sleep_tool_processing_ms", "Sleep tool processing latency", ["transport"], buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])
 
 @mcp.tool()
-async def sleep(delay_ms: int = 1000, trace_id: str = "none", step_index: int = 0):
+async def sleep(delay_ms: int = 1000, trace_id: str = "none", step_index: int = 0,
+    transport: str = "sse"):
     start = time.perf_counter()
     
     await asyncio.sleep(delay_ms / 1000.0)
 
     end = time.perf_counter()
     proc_ms = (end - start) * 1000
-    SLEEP_TOOL_CALLS.inc()
-    SLEEP_TOOL_LATENCY.observe(proc_ms)
+    SLEEP_TOOL_CALLS.labels(transport=transport).inc()
+    SLEEP_TOOL_LATENCY.labels(transport=transport).observe(proc_ms)
 
     await tool_logger.log({
         "trace_id": trace_id, "tool_name": "sleep", "step_index": step_index,

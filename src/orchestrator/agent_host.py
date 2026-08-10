@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from metrics.prometheus import MCP_REQUESTS, MCP_LATENCY
+from metrics.prometheus import MCP_REQUESTS, MCP_LATENCY, MCP_COST_USD, MCP_TOOL_RECOVERY
 from orchestrator.tool_executor import ToolExecutor
 from orchestrator.pipeline import AgentPipeline
 
@@ -117,8 +117,6 @@ async def run(req: RunRequest):
     token = request_trace_id.set(trace_id)
 
     try:
-        MCP_REQUESTS.inc()
-
         start = time.perf_counter()
         workload = req.workload.dict(exclude_none=True)
         
@@ -131,8 +129,23 @@ async def run(req: RunRequest):
             # Fallback if specific api key was missing or unavailable
             print(f"Warning: requested model {requested_model} not available, falling back to mock")
             requested_model = "mock"
-            
-        pipeline = AgentPipeline(adapters[requested_model], executor, transport=transport)
+
+        # Extract labels
+        workload_name = workload.get("name", "unknown")
+        users = str(workload.get("users", "1"))
+        label_kwargs = {
+            "model": requested_model,
+            "transport": transport,
+            "workload": workload_name,
+            "users": users
+        }
+
+        # Initialize metrics so Prometheus tracks them immediately
+        MCP_REQUESTS.labels(**label_kwargs).inc()
+        MCP_TOOL_RECOVERY.labels(status="failed", **label_kwargs).inc(0)
+        MCP_TOOL_RECOVERY.labels(status="recovered", **label_kwargs).inc(0)
+        
+        pipeline = AgentPipeline(adapters[requested_model], executor, transport=transport, labels=label_kwargs)
 
         result = await pipeline.run_workload(workload)
         total_ms = (time.perf_counter() - start) * 1000
@@ -140,11 +153,14 @@ async def run(req: RunRequest):
         m = result["metrics"]
 
         # Prometheus metrics
-        MCP_LATENCY.labels(component="total").observe(total_ms)
-        MCP_LATENCY.labels(component="model").observe(m["model_latency_ms"])
-        MCP_LATENCY.labels(component="tool").observe(m["tool_total_ms"])
-        MCP_LATENCY.labels(component="protocol").observe(m["mcp_protocol_overhead_ms"])
-        MCP_LATENCY.labels(component="pipeline").observe(m["pipeline_overhead_ms"])
+        MCP_LATENCY.labels(component="total", **label_kwargs).observe(total_ms)
+        MCP_LATENCY.labels(component="model", **label_kwargs).observe(m["model_latency_ms"])
+        MCP_LATENCY.labels(component="tool", **label_kwargs).observe(m["tool_total_ms"])
+        MCP_LATENCY.labels(component="protocol", **label_kwargs).observe(m["mcp_protocol_overhead_ms"])
+        MCP_LATENCY.labels(component="pipeline", **label_kwargs).observe(m["pipeline_overhead_ms"])
+
+        cost = m.get("cost_usd", 0.0)
+        MCP_COST_USD.labels(**label_kwargs).inc(cost)
 
         cost = m.get("cost_usd", 0.0)
 

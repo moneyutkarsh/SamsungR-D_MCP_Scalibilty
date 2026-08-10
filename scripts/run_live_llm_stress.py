@@ -224,7 +224,13 @@ async def run_single_repeat(
                     "request_index": request_idx,
                 }
                 try:
-                    resp = await client.post(f"{host}/run", json=request_payload)
+                    payload_with_users = dict(request_payload)
+                    if "workload" in payload_with_users:
+                        payload_with_users["workload"]["users"] = str(users)
+                    else:
+                        payload_with_users["users"] = str(users)
+                        
+                    resp = await client.post(f"{host}/run", json=payload_with_users)
                     row["http_status"] = resp.status_code
                     row["client_latency_ms"] = (time.perf_counter() - req_start) * 1000
 

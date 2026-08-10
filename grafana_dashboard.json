@@ -9,87 +9,365 @@
   "panels": [
     {
       "id": 1,
-      "title": "Request Rate (RPS)",
-      "type": "timeseries",
-      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "title": "Total Requests",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
       "targets": [
         {
-          "expr": "rate(mcp_requests_total[1m])",
-          "legendFormat": "Requests/sec",
+          "expr": "sum(mcp_requests_total{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"})",
+          "legendFormat": "",
           "refId": "A"
         }
       ]
     },
     {
       "id": 2,
-      "title": "Response Time Percentiles",
-      "type": "timeseries",
-      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "title": "Average Workflow Depth",
+      "type": "stat",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, rate(mcp_latency_ms_bucket{component=\"total\"}[1m]))",
-          "legendFormat": "P50",
+          "expr": "(sum(mcp_workflow_depth_count_sum{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}) / sum(mcp_workflow_depth_count_count{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"})) OR on() vector(0)",
+          "legendFormat": "",
           "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.95, rate(mcp_latency_ms_bucket{component=\"total\"}[1m]))",
-          "legendFormat": "P95",
-          "refId": "B"
-        },
-        {
-          "expr": "histogram_quantile(0.99, rate(mcp_latency_ms_bucket{component=\"total\"}[1m]))",
-          "legendFormat": "P99",
-          "refId": "C"
         }
       ]
     },
     {
       "id": 3,
-      "title": "Total Requests",
+      "title": "Tool Failure Rate (%)",
       "type": "stat",
-      "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
       "targets": [
         {
-          "expr": "sum(mcp_requests_total)",
+          "expr": "((sum(rate(mcp_tool_recovery_total{status=\"failed\", model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m])) / sum(rate(mcp_requests_total{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m]))) * 100) OR on() vector(0)",
+          "legendFormat": "",
           "refId": "A"
         }
       ]
     },
     {
       "id": 4,
-      "title": "Latency By Component (avg ms)",
-      "type": "timeseries",
-      "gridPos": {"x": 6, "y": 8, "w": 18, "h": 8},
+      "title": "Total Cost ($)",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
       "targets": [
         {
-          "expr": "sum by (component) (rate(mcp_latency_ms_sum[1m])) / sum by (component) (rate(mcp_latency_ms_count[1m]))",
-          "legendFormat": "{{component}}",
+          "expr": "sum(mcp_cost_usd_total{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}) OR on() vector(0)",
+          "legendFormat": "",
           "refId": "A"
         }
       ]
     },
     {
       "id": 5,
-      "title": "Echo Tool Processing P95",
+      "title": "System Throughput (RPS)",
       "type": "timeseries",
-      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 8,
+        "h": 8
+      },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(echo_tool_processing_ms_bucket[1m]))",
-          "legendFormat": "Echo p95",
+          "expr": "sum(rate(mcp_requests_total{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m]))",
+          "legendFormat": "",
           "refId": "A"
         }
       ]
     },
     {
       "id": 6,
-      "title": "Echo Tool Calls",
+      "title": "Latency Decomposition (Average per Component)",
       "type": "timeseries",
-      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 8
+      },
       "targets": [
         {
-          "expr": "rate(echo_tool_calls_total[1m])",
-          "legendFormat": "Echo calls/sec",
+          "expr": "sum by (component, transport) (rate(mcp_latency_ms_sum{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m])) / sum by (component, transport) (rate(mcp_latency_ms_count{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m]))",
+          "legendFormat": "{{component}} - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "End-to-End Latency Percentiles (P95 / P99)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(mcp_latency_ms_bucket{component=\"total\", model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m])))",
+          "legendFormat": "P95 Total",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(mcp_latency_ms_bucket{component=\"total\", model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m])))",
+          "legendFormat": "P99 Total",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Cost per 1K Requests ($/1K)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "((sum(rate(mcp_cost_usd_total{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m])) / sum(rate(mcp_requests_total{model=~\"$model\", transport=~\"$transport\", workload=~\"$workload\", users=~\"$concurrency\"}[1m]))) * 1000) OR on() vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Echo Tool RPS",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (transport) (rate(echo_tool_calls_total{transport=~\"$transport\"}[1m]))",
+          "legendFormat": "Echo - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Echo Tool P95 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, transport) (rate(echo_tool_processing_ms_bucket{transport=~\"$transport\"}[1m])))",
+          "legendFormat": "Echo - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Math Tool RPS",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (transport) (rate(math_tool_calls_total{transport=~\"$transport\"}[1m]))",
+          "legendFormat": "Math - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Math Tool P95 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, transport) (rate(math_tool_processing_ms_bucket{transport=~\"$transport\"}[1m])))",
+          "legendFormat": "Math - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Search Tool RPS",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (transport) (rate(search_tool_calls_total{transport=~\"$transport\"}[1m]))",
+          "legendFormat": "Search - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Search Tool P95 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, transport) (rate(search_tool_processing_ms_bucket{transport=~\"$transport\"}[1m])))",
+          "legendFormat": "Search - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Db Tool RPS",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (transport) (rate(db_tool_calls_total{transport=~\"$transport\"}[1m]))",
+          "legendFormat": "Db - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Db Tool P95 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 38,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, transport) (rate(db_tool_processing_ms_bucket{transport=~\"$transport\"}[1m])))",
+          "legendFormat": "Db - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "File Tool RPS",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (transport) (rate(file_tool_calls_total{transport=~\"$transport\"}[1m]))",
+          "legendFormat": "File - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "File Tool P95 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 44,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, transport) (rate(file_tool_processing_ms_bucket{transport=~\"$transport\"}[1m])))",
+          "legendFormat": "File - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Sleep Tool RPS",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (transport) (rate(sleep_tool_calls_total{transport=~\"$transport\"}[1m]))",
+          "legendFormat": "Sleep - {{transport}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Sleep Tool P95 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 50,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, transport) (rate(sleep_tool_processing_ms_bucket{transport=~\"$transport\"}[1m])))",
+          "legendFormat": "Sleep - {{transport}}",
           "refId": "A"
         }
       ]
@@ -100,10 +378,120 @@
   "style": "dark",
   "tags": [
     "mcp",
-    "scalability"
+    "scalability",
+    "research-grade"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(mcp_requests_total, model)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "model",
+        "options": [],
+        "query": {
+          "query": "label_values(mcp_requests_total, model)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(mcp_requests_total, transport)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "transport",
+        "options": [],
+        "query": {
+          "query": "label_values(mcp_requests_total, transport)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(mcp_requests_total, workload)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "workload",
+        "options": [],
+        "query": {
+          "query": "label_values(mcp_requests_total, workload)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(mcp_requests_total, users)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "concurrency",
+        "options": [],
+        "query": {
+          "query": "label_values(mcp_requests_total, users)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-15m",
@@ -111,8 +499,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "MCP Scalability Dashboard",
+  "title": "MCP Scalability Dashboard - Research Grade",
   "uid": "mcp-scalability",
-  "version": 1,
-  "weekStart": ""
+  "version": 2
 }

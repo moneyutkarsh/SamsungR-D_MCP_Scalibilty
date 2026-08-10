@@ -32,6 +32,7 @@ async def echo(
     payload_size_kb: int = 1,
     trace_id: str = "none",
     step_index: int = 0,
+    transport: str = "sse",
 ):
     start = time.perf_counter()
 
@@ -45,8 +46,8 @@ async def echo(
     end = time.perf_counter()
 
     proc_ms = (end - start) * 1000
-    ECHO_TOOL_CALLS.inc()
-    ECHO_TOOL_LATENCY.observe(proc_ms)
+    ECHO_TOOL_CALLS.labels(transport=transport).inc()
+    ECHO_TOOL_LATENCY.labels(transport=transport).observe(proc_ms)
 
     # Async non-blocking tool log
     await tool_logger.log({

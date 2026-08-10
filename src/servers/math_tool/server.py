@@ -29,6 +29,7 @@ async def calculate(
     expression: str,
     trace_id: str = "none",
     step_index: int = 0,
+    transport: str = "sse",
 ):
     start = time.perf_counter()
 
@@ -45,8 +46,8 @@ async def calculate(
 
     end = time.perf_counter()
     proc_ms = (end - start) * 1000
-    MATH_TOOL_CALLS.inc()
-    MATH_TOOL_LATENCY.observe(proc_ms)
+    MATH_TOOL_CALLS.labels(transport=transport).inc()
+    MATH_TOOL_LATENCY.labels(transport=transport).observe(proc_ms)
 
     await tool_logger.log({
         "trace_id": trace_id,
