@@ -41,6 +41,9 @@ class RepeatResult:
     error_count: int
     elapsed_s: float
     throughput_rps: float
+    mean_latency_ms: float
+    p95_latency_ms: float
+    error_rate: float
     output_dir: Path
     trace_ids: set[str]
 
@@ -291,6 +294,17 @@ async def run_single_repeat(
     with (output_dir / "prometheus_after.json").open("w", encoding="utf-8") as f:
         json.dump(after_snapshot, f, indent=2)
 
+    # Compute latency statistics from successful records
+    latencies = [r["client_latency_ms"] for r in success_records if r.get("client_latency_ms") is not None]
+    if latencies:
+        mean_latency_ms = float(sum(latencies) / len(latencies))
+        sorted_lat = sorted(latencies)
+        p95_latency_ms = float(sorted_lat[int(len(sorted_lat) * 0.95)])
+    else:
+        mean_latency_ms = 0.0
+        p95_latency_ms = 0.0
+    error_rate = error_count / len(records) if records else 0.0
+
     return RepeatResult(
         workload=workload_name,
         users=users,
@@ -300,6 +314,9 @@ async def run_single_repeat(
         error_count=error_count,
         elapsed_s=elapsed,
         throughput_rps=throughput_rps,
+        mean_latency_ms=mean_latency_ms,
+        p95_latency_ms=p95_latency_ms,
+        error_rate=error_rate,
         output_dir=output_dir,
         trace_ids=trace_ids,
     )
