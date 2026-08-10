@@ -1,0 +1,11 @@
+{
+  "workload": {
+    "name": "w8_diverse_tools",
+    "description": "Multi-step complex workflow exercising diverse tools (math, file, db)",
+    "model": "ollama",
+    "execution_mode": "sequential",
+    "workflow": ["math", "file", "db"],
+    "tool_params": { "delay_ms": 10, "payload_size_kb": 1 },
+    "payload": { "text": "Execute a deep planning sequence using multiple tools to calculate metrics and log them." }
+  }
+}

@@ -8,11 +8,11 @@ SRIB-PRISM Program
 - ✅ **Core Infrastructure:** Fully containerized microservices architecture with Docker Compose orchestration
 - ✅ **Model Integration:** Pluggable adapter system supporting Mock, Ollama, OpenAI, and Anthropic backends
 - ✅ **Observability Stack:** End-to-end instrumentation with Prometheus metrics, structured JSONL logging, and distributed tracing
-- ✅ **Workload Suite:** Seven canonical workload profiles (W1-W7) covering orthogonal scalability dimensions
-- ✅ **Load Testing:** High-concurrency load generation framework using Locust
-- ✅ **Data Pipeline:** Automated aggregation and analysis scripts for experimental results
-- ✅ **MCP Tool Servers:** Echo tool server implementation with FastMCP
-- ✅ **Agent Orchestration:** Complete agentic workflow pipeline with tool execution engine
+- ✅ **Workload Suite:** Eight canonical workload profiles (W1-W8) covering orthogonal scalability dimensions, including diverse tool orchestration
+- ✅ **Data Pipeline:** Automated aggregation and analysis scripts for experimental results, token cost tracking, and error recovery plotting
+- ✅ **MCP Tool Servers:** Full ecosystem of 5 FastMCP servers (Echo, Math, Search, Database, File System, Sleep)
+- ✅ **Agent Orchestration:** Complete agentic workflow pipeline with deep iterative tool execution and context chaining
+- ✅ **Transport Layer:** Configurable transport modes supporting both HTTP/SSE and localized Stdio subprocesses
 
 ## System Architecture
 
@@ -30,8 +30,8 @@ The platform measures the following performance characteristics:
 - **Saturation Analysis:** Concurrency limits and degradation behavior
 - **Resource Utilization:** CPU, memory, and network consumption patterns
 - **Protocol Efficiency:** MCP overhead percentage relative to total request latency
-
-
+- **Economic Scalability:** Granular Prompt vs Completion token tracking ($) per workflow step
+- **Resilience:** Autonomous error recovery and tool-failure tracking at deep iteration scales (depth=5)
 
 ## Setup Guide
 
@@ -49,22 +49,16 @@ The platform measures the following performance characteristics:
    cd mcp-scalability-analysis
    ```
 
-2. **Configure environment (optional):**
-   
-   Create a `.env` file to customize model backend:
+2. **Configure environment:**
+   Create a `.env` file to customize model backend and API keys. **This is required for Live LLM tests.**
    ```bash
-   # Example: Use OpenAI
-   MODEL_BACKEND=openai
-   OPENAI_API_KEY=sk-your-api-key
-   OPENAI_MODEL=gpt-4o-mini
+   # External LLM Providers
+   OPENAI_API_KEY=your_actual_key_here
+   ANTHROPIC_API_KEY=your_actual_key_here
    
-   # Example: Use Ollama (default)
    MODEL_BACKEND=ollama
    OLLAMA_MODEL=llama3.2:3b
    OLLAMA_URL=http://ollama:11434
-   
-   # Example: Use Mock adapter for testing
-   MODEL_BACKEND=mock
    ```
 
 3. **Build and start services:**
@@ -76,157 +70,51 @@ The platform measures the following performance characteristics:
    ```bash
    docker-compose ps
    ```
-   
-   Expected output:
-   ```
-   NAME         STATUS                    PORTS
-   agent_host   Up                        0.0.0.0:8000->8000/tcp
-   echo_tool    Up (healthy)              0.0.0.0:8001->8001/tcp
-   grafana      Up                        0.0.0.0:3000->3000/tcp
-   ollama       Up                        0.0.0.0:11434->11434/tcp
-   prometheus   Up                        0.0.0.0:9090->9090/tcp
-   ```
-
-5. **Initialize Ollama model (if using Ollama backend):**
-   ```bash
-   docker exec -it ollama ollama pull llama3.2:3b
-   ```
 
 ### Service Endpoints
 
 | Service | URL | Purpose |
 |---------|-----|---------|
 | Agent Host API | http://localhost:8000 | Main API endpoint |
-| Agent Host Docs | http://localhost:8000/docs | Interactive API documentation |
-| Metrics Endpoint | http://localhost:8000/metrics | Prometheus metrics |
 | Prometheus UI | http://localhost:9090 | Metrics query interface |
 | Grafana | http://localhost:3000 | Visualization dashboards |
 | Ollama API | http://localhost:11434 | Local LLM service |
 
-## Usage Guide
+## Usage Guide & Runbook
 
-### Running Performance Tests
+For a highly detailed guide on executing the benchmarking suites, setting token prices, and generating research reports, **please read the comprehensive [RUNBOOK](docs/RUNBOOK.md)**.
 
-1. **Execute a single workload:**
+### Running Automated Test Suites
+
+The benchmarking suite is split into two phases:
+
+1. **Infrastructure Stress Test (Suite A)**:
+   Tests pure concurrency scaling up to 500 users using the Mock Adapter and tests both `sse` and `stdio` transports.
    ```bash
-   curl -X POST http://localhost:8000/run \
-     -H "Content-Type: application/json" \
-     -d @benchmarks/workloads/w1_pure_mcp.json
+   python scripts/run_infra_stress.py
    ```
 
-2. **Start load testing:**
+2. **Live LLM Cognitive Stress Test (Suite B)**:
+   Tests token costs, error recovery, and deep context chaining across live commercial or local models.
    ```bash
-   # Install Locust (if not already installed)
-   pip install locust
-   
-   # Launch Locust
-   locust -f benchmarks/locustfiles/locustfile.py
-   ```
-   
-   Access Locust UI at http://localhost:8089 and configure test parameters:
-   - Number of users: 10-1000 (depending on test scenario)
-   - Spawn rate: 10 users/second
-   - Host: http://localhost:8000
-
-3. **Monitor metrics in real-time:**
-   - **Prometheus:** Navigate to http://localhost:9090 and query `mcp_latency_ms_bucket`
-   - **Grafana:** Login at http://localhost:3000 (default credentials: `admin` / `admin`)
-
-### Analyzing Results
-
-1. **View structured logs:**
-   ```bash
-   # Agent host logs
-   cat data/logs/agent_host.jsonl | jq '.'
-   
-   # Tool execution logs
-   cat data/logs/tool_executor.jsonl | jq '.'
+   python scripts/run_live_llm_stress.py --model-backend openai --users 1 5 10
    ```
 
-2. **Generate aggregated metrics:**
-   ```bash
-   python scripts/summarize_run.py
-   ```
-   
-   Output location: `data/results/latest/summary.csv`
-   
-   The summary includes:
-   - Latency percentiles (p50, p95, p99)
-   - Throughput (requests per second)
-   - Protocol overhead percentage
-   - Resource utilization metrics
+### Generating Research Artifacts
 
-3. **Generate complete baseline dataset (Task 1, Mock):**
-   ```powershell
-   $env:MODEL_BACKEND="mock"
-   python scripts/run_baseline_dataset.py `
-     --host http://localhost:8000 `
-     --prometheus-url http://localhost:9090 `
-     --users 1 10 50 100 200 500 `
-     --repeats 1 `
-     --requests-per-user 20
-   ```
+Once the test suites generate the CSV logs, compile the final research plots (Cost Scaling, Error Recovery, Saturation) and dynamic markdown report:
 
-   Output location: `data/results/baseline_mockadapter/`
+```bash
+# Generate plots in docs/reports/figures/
+python scripts/analyze_scalability.py
 
-   The dataset includes:
-   - Full coverage report (`dataset_coverage.csv`) for W1-W7 x user levels x repeats
-   - Per-repeat request-level JSONL (`experiments/.../requests.jsonl`)
-   - Per-repeat filtered component logs (`filtered_logs/*.jsonl`)
-   - Prometheus snapshots before/after each repeat (`prometheus_before.json`, `prometheus_after.json`)
-   - Statistical summaries (`summary_statistics_long.csv`, `summary_statistics_wide.csv`)
-
-   Statistical summary fields include:
-   - Median
-   - IQR (Q3-Q1)
-   - 95% CI for median (bootstrap)
-   - Coefficient of Variation (CV%)
-
-4. **Generate initial real-model dataset and comparison (Task 2):**
-   ```powershell
-   .\scripts\fresh_run.ps1 -Mode task2 -Repeats 1 -KeepBaseline
-   ```
-
-   Notes:
-   - `-KeepBaseline` keeps `data/results/baseline_mockadapter/` untouched.
-   - Task 2 writes fresh output to `data/results/task2_initial_real_model/`.
-   - Task 2 runs W1-W3 with both backends (mock and Ollama) and produces comparison CSVs.
-
-   Output location: `data/results/task2_initial_real_model/`
-
-   The dataset includes:
-   - Mock subset (`mock/`) for W1-W3
-   - Ollama subset (`ollama/`) for W1-W3
-   - Full comparison table (`mock_vs_ollama_comparison.csv`)
-   - Key metric comparison (`mock_vs_ollama_comparison_key_metrics.csv`)
-
-5. **One-command helper script examples (Windows PowerShell):**
-   ```powershell
-   # Baseline only
-   .\scripts\fresh_run.ps1 -Mode baseline -Repeats 1
-
-   # Task2 only, keep previously generated baseline results
-   .\scripts\fresh_run.ps1 -Mode task2 -Repeats 1 -KeepBaseline
-
-   # Baseline + Task2 in one run
-   .\scripts\fresh_run.ps1 -Mode both -Repeats 1
-
-   # Optional: free Docker cache during run
-   .\scripts\fresh_run.ps1 -Mode task2 -Repeats 1 -KeepBaseline -PruneDockerCache
-   ```
-
-3. **Query Prometheus metrics:**
-   ```promql
-   # Average latency by component
-   rate(mcp_latency_ms_sum[5m]) / rate(mcp_latency_ms_count[5m])
-   
-   # 95th percentile latency
-   histogram_quantile(0.95, rate(mcp_latency_ms_bucket[5m]))
-   ```
+# Compile the final Markdown report
+python scripts/generate_report.py
+```
 
 ### Workload Profiles
 
-The platform includes seven canonical workload profiles:
+The platform includes eight canonical workload profiles designed to isolate bottlenecks:
 
 | Workload | Description | Primary Metric |
 |----------|-------------|----------------|
@@ -237,35 +125,7 @@ The platform includes seven canonical workload profiles:
 | W5 | Large payload (1MB) | Serialization performance |
 | W6 | Multi-tool orchestration | Concurrent tool execution |
 | W7 | Mixed workload stress test | System saturation characteristics |
-
-### Troubleshooting
-
-1. **Check service health:**
-   ```bash
-   docker-compose logs agent_host
-   docker-compose logs echo_tool
-   docker-compose logs ollama
-   ```
-
-2. **Restart services:**
-   ```bash
-   docker-compose restart
-   ```
-
-3. **Complete reset:**
-   ```bash
-   docker-compose down -v
-   docker-compose up --build
-   ```
-
-4. **Verify connectivity:**
-   ```bash
-   # Test Agent Host
-   curl http://localhost:8000/metrics
-   
-   # Test Ollama
-   curl http://localhost:11434/api/tags
-   ```
+| W8 | Diverse tools | Complex context chaining (Math, DB, File) |
 
 ## Experimental Methodology
 
@@ -277,7 +137,3 @@ For rigorous performance analysis, follow these guidelines:
 - **Variable Control:** Vary one independent variable per experiment
 - **Resource Isolation:** Run experiments on dedicated infrastructure
 - **Data Persistence:** All logs and metrics are persisted in `data/` directory
-
----
-
-
