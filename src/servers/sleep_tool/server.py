@@ -46,5 +46,8 @@ if __name__ == "__main__":
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-    import uvicorn
-    uvicorn.run("servers.sleep_tool.server:app", host="0.0.0.0", port=8006)
+    if "--stdio" in sys.argv:
+        mcp.run(transport="stdio")
+    else:
+        import uvicorn
+        uvicorn.run("servers.sleep_tool.server:app", host="0.0.0.0", port=8006)

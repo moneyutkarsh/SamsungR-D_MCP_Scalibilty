@@ -27,6 +27,10 @@
     "prompt_per_1m": 0.0,
     "completion_per_1m": 0.0
   },
+  "ollama:phi3:mini": {
+    "prompt_per_1m": 0.20,
+    "completion_per_1m": 0.30
+  },
   "mock:mock": {
     "prompt_per_1m": 0.0,
     "completion_per_1m": 0.0

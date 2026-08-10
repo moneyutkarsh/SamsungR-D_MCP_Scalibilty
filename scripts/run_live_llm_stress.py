@@ -203,7 +203,7 @@ async def run_single_repeat(
         json.dump(before_snapshot, f, indent=2)
 
     records: list[dict[str, Any]] = []
-    timeout = httpx.Timeout(60.0, connect=10.0)
+    timeout = httpx.Timeout(300.0, connect=10.0)
     limits = httpx.Limits(max_connections=max(1000, users * 2), max_keepalive_connections=max(100, users))
 
     async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:

@@ -79,6 +79,9 @@ if __name__ == "__main__":
     src_path = Path(__file__).parent.parent.parent
     sys.path.insert(0, str(src_path))
     
-    import uvicorn
-    # Run the FastMCP server
-    uvicorn.run("servers.echo_tool.server:app", host="0.0.0.0", port=8001)
+    if "--stdio" in sys.argv:
+        mcp.run(transport="stdio")
+    else:
+        import uvicorn
+        # Run the FastMCP server
+        uvicorn.run("servers.echo_tool.server:app", host="0.0.0.0", port=8001)

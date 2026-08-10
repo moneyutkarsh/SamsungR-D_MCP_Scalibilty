@@ -21,7 +21,7 @@ class AgentPipeline:
         try:
             model_resp = await asyncio.wait_for(
                 self.model.generate(prompt=prompt, tools=tool_schemas),
-                timeout=60.0
+                timeout=300.0
             )
         except asyncio.TimeoutError:
             raise RuntimeError("Model generation timed out")

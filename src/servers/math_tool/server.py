@@ -75,5 +75,8 @@ if __name__ == "__main__":
     from pathlib import Path
     src_path = Path(__file__).parent.parent.parent
     sys.path.insert(0, str(src_path))
-    import uvicorn
-    uvicorn.run("servers.math_tool.server:app", host="0.0.0.0", port=8002)
+    if "--stdio" in sys.argv:
+        mcp.run(transport="stdio")
+    else:
+        import uvicorn
+        uvicorn.run("servers.math_tool.server:app", host="0.0.0.0", port=8002)
