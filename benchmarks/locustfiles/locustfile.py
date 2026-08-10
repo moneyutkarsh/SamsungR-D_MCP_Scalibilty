@@ -1,47 +1,62 @@
-from locust import HttpUser, task, between
+import json
+import os
+import random
+from pathlib import Path
+
+from locust import HttpUser, between, task
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _load_workloads() -> list[dict]:
+    workload_dir = Path(os.getenv("WORKLOAD_DIR", _project_root() / "benchmarks" / "workloads"))
+    selected = os.getenv("WORKLOADS")
+    if selected:
+        names = [item.strip() for item in selected.split(",") if item.strip()]
+        files = [
+            workload_dir / (name if name.endswith(".json") else f"{name}.json")
+            for name in names
+        ]
+    else:
+        files = sorted(workload_dir.glob("w*.json"))
+
+    workloads = []
+    for file_path in files:
+        if file_path.name == "schema.json":
+            continue
+        with file_path.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if "workload" not in payload:
+            payload = {"workload": payload}
+        workloads.append(payload)
+
+    if not workloads:
+        raise RuntimeError(f"No workload JSON files found in {workload_dir}")
+    return workloads
+
+
+WORKLOADS = _load_workloads()
+
 
 class MCPStressTestUser(HttpUser):
-    wait_time = between(0.1, 0.5)  # Wait 100-500ms between requests
+    wait_time = between(
+        float(os.getenv("LOCUST_WAIT_MIN", "0.1")),
+        float(os.getenv("LOCUST_WAIT_MAX", "0.5")),
+    )
 
-    @task(3)  # 60% of requests - pure MCP test
-    def test_pure_mcp(self):
-        """Test pure MCP overhead with no delay"""
-        payload = {
-            "workload": {
-                "name": "w1_pure_mcp",
-                "description": "Pure MCP overhead, zero delay",
-                "model": "mock",
-                "workflow": ["echo"],
-                "tool_params": {"delay_ms": 0, "payload_size_kb": 1},
-                "payload": {"text": "ping"}
-            }
-        }
-        with self.client.post("/run", json=payload, catch_response=True) as response:
+    @task
+    def run_workload(self):
+        payload = random.choice(WORKLOADS)
+        workload_name = payload["workload"]["name"]
+        with self.client.post(
+            "/run",
+            json=payload,
+            name=f"/run/{workload_name}",
+            catch_response=True,
+        ) as response:
             if response.status_code == 200:
                 response.success()
             else:
-                response.failure(f"Status: {response.status_code}, Body: {response.text}")
-
-    @task(2)  # 40% of requests - light tool test
-    def test_light_tool(self):
-        """Test with 10ms tool delay"""
-        payload = {
-            "workload": {
-                "name": "w2_light_tool",
-                "description": "Single tool, 10ms delay",
-                "model": "ollama",
-                "workflow": ["echo"],
-                "tool_params": {"delay_ms": 10, "payload_size_kb": 1},
-                "payload": {"text": "hello"}
-            }
-        }
-        with self.client.post("/run", json=payload, catch_response=True) as response:
-            if response.status_code == 200:
-                response.success()
-            else:
-                response.failure(f"Status: {response.status_code}, Body: {response.text}")
-
-    def on_start(self):
-        """Called when a simulated user starts"""
-        print("Starting MCP load test user")
-
+                response.failure(f"Status: {response.status_code}, Body: {response.text[:500]}")

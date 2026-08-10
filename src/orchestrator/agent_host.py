@@ -2,8 +2,10 @@ import os
 import time
 import uuid
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Literal, Optional
+
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -14,7 +16,6 @@ from orchestrator.pipeline import AgentPipeline
 # Adapters
 from model_adapters.mock_adapter import MockAdapter
 from model_adapters.ollama_adapter import OllamaAdapter
-# from model_adapters.openai_adapter import OpenAIAdapter
 
 from core.context import request_trace_id
 from utils.jsonl_logger import JSONLLogger
@@ -22,11 +23,28 @@ from utils.jsonl_logger import JSONLLogger
 # Environment tag for cross-env comparison (local, docker, cloud, etc)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 
-# Which model backend to use: mock | ollama | openai
+# Which model backend to use: mock | ollama | openai | anthropic
 MODEL_BACKEND = os.getenv("MODEL_BACKEND", "ollama")
 
+class ToolParams(BaseModel):
+    delay_ms: int = Field(ge=0, le=300000)
+    payload_size_kb: int = Field(ge=0, le=10240)
+
+
+class WorkloadDefinition(BaseModel):
+    name: str = Field(min_length=1)
+    description: str = ""
+    model: Literal["mock", "ollama", "openai", "anthropic"] = "mock"
+    prompt: Optional[str] = None
+    execution_mode: Literal["sequential", "parallel"] = "sequential"
+    workflow: List[Literal["echo"]] = Field(min_items=1)
+    tool_params: ToolParams
+    payload: Dict[str, Any]
+    tool_schemas: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 class RunRequest(BaseModel):
-    workload: dict
+    workload: WorkloadDefinition
 
 # -------------------------------
 # Initialize core components
@@ -54,6 +72,14 @@ elif MODEL_BACKEND == "openai":
         model=os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     )
 
+elif MODEL_BACKEND == "anthropic":
+    print("Using AnthropicAdapter")
+    from model_adapters.anthropic_adapter import AnthropicAdapter
+    model = AnthropicAdapter(
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        model=os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
+    )
+
 else:
     raise RuntimeError(f"Unknown MODEL_BACKEND: {MODEL_BACKEND}")
 
@@ -71,6 +97,8 @@ request_logger = JSONLLogger(log_path)
 async def lifespan(app: FastAPI):
     await executor.initialize_servers()
     yield
+    if hasattr(model, "close"):
+        await model.close()
     await executor.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -97,7 +125,8 @@ async def run(req: RunRequest):
     MCP_REQUESTS.inc()
 
     start = time.perf_counter()
-    result = await pipeline.run_workload(req.workload)
+    workload = req.workload.dict(exclude_none=True)
+    result = await pipeline.run_workload(workload)
     total_ms = (time.perf_counter() - start) * 1000
 
     m = result["metrics"]
@@ -113,7 +142,7 @@ async def run(req: RunRequest):
     await request_logger.log({
         "trace_id": trace_id,
         "environment": ENVIRONMENT,
-        "workload": req.workload.get("name", "unknown"),
+        "workload": workload.get("name", "unknown"),
         "metrics": m,
         "model_backend": MODEL_BACKEND
     })

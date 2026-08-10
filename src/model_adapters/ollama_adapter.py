@@ -43,3 +43,6 @@ class OllamaAdapter(IMCPAdapter):
             ),
             raw=data
         )
+
+    async def close(self):
+        await self.client.aclose()

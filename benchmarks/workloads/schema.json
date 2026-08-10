@@ -1,13 +1,77 @@
 {
-  "name": "string",
-  "description": "string",
-  "model": "mock|openai",
-  "workflow": ["tool_name", "..."],
-  "tool_params": {
-    "delay_ms": "number",
-    "payload_size_kb": "number"
-  },
-  "payload": {
-    "text": "string"
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/mcp-scalability/workload.schema.json",
+  "title": "MCP Scalability Workload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workload"],
+  "properties": {
+    "workload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description", "model", "workflow", "tool_params", "payload"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string",
+          "enum": ["mock", "ollama", "openai", "anthropic"]
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "execution_mode": {
+          "type": "string",
+          "enum": ["sequential", "parallel"],
+          "default": "sequential"
+        },
+        "workflow": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["echo"]
+          }
+        },
+        "tool_params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["delay_ms", "payload_size_kb"],
+          "properties": {
+            "delay_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 300000
+            },
+            "payload_size_kb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10240
+            }
+          }
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["text"],
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          }
+        },
+        "tool_schemas": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
   }
 }

@@ -3,6 +3,10 @@ import asyncio
 import time
 import os
 
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from starlette.requests import Request
+from starlette.responses import Response
+
 from utils.jsonl_logger import JSONLLogger
 
 mcp = FastMCP("EchoServer")
@@ -10,8 +14,25 @@ mcp = FastMCP("EchoServer")
 echo_log_path = os.getenv("ECHO_LOG_PATH", "data/logs/echo_tool.jsonl")
 tool_logger = JSONLLogger(echo_log_path)
 
+ECHO_TOOL_CALLS = Counter(
+    "echo_tool_calls_total",
+    "Total echo tool calls",
+)
+
+ECHO_TOOL_LATENCY = Histogram(
+    "echo_tool_processing_ms",
+    "Echo tool internal processing latency",
+    buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
+)
+
 @mcp.tool()
-async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1):
+async def echo(
+    text: str,
+    delay_ms: int = 0,
+    payload_size_kb: int = 1,
+    trace_id: str = "none",
+    step_index: int = 0,
+):
     start = time.perf_counter()
 
     if delay_ms > 0:
@@ -23,15 +44,15 @@ async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1):
 
     end = time.perf_counter()
 
-    # trace_id will be propagated via MCP protocol metadata
-    trace_id = "none"
-
     proc_ms = (end - start) * 1000
+    ECHO_TOOL_CALLS.inc()
+    ECHO_TOOL_LATENCY.observe(proc_ms)
 
     # Async non-blocking tool log
     await tool_logger.log({
         "trace_id": trace_id,
         "tool_name": "echo",
+        "step_index": step_index,
         "tool_processing_ms": proc_ms,
         "payload_bytes": len(data)
     })
@@ -42,6 +63,10 @@ async def echo(text: str, delay_ms: int = 0, payload_size_kb: int = 1):
             "duration_ms": proc_ms
         }
     }
+
+@mcp.custom_route("/metrics", methods=["GET"], include_in_schema=False)
+async def metrics(request: Request) -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 if __name__ == "__main__":
     import sys

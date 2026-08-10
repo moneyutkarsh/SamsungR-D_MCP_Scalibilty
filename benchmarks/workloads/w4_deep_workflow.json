@@ -3,6 +3,7 @@
     "name": "w4_deep_workflow",
     "description": "5-step deep workflow",
     "model": "ollama",
+    "execution_mode": "sequential",
     "workflow": ["echo", "echo", "echo", "echo", "echo"],
     "tool_params": { "delay_ms": 10, "payload_size_kb": 1 },
     "payload": { "text": "chain" }

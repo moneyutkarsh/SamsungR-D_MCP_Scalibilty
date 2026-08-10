@@ -38,7 +38,12 @@ def test_mock_adapter():
     workload = {
         "workload": {
             "name": "test_mock",
-            "prompt": "hello world"
+            "description": "Minimal validated echo workload",
+            "model": "mock",
+            "execution_mode": "sequential",
+            "workflow": ["echo"],
+            "tool_params": {"delay_ms": 0, "payload_size_kb": 1},
+            "payload": {"text": "hello world"}
         }
     }
     
@@ -63,7 +68,7 @@ def test_workload_w1():
     
     try:
         with open("benchmarks/workloads/w1_pure_mcp.json", "r") as f:
-            workload = {"workload": json.load(f)}
+            workload = json.load(f)
         
         start = time.time()
         response = requests.post(f"{BASE_URL}/run", json=workload, timeout=10)

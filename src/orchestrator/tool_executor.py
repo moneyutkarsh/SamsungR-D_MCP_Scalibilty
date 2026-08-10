@@ -38,7 +38,7 @@ class ToolExecutor:
                 "id": 0
             }
             try:
-                await self.client.post(f"{url}/messages", json=payload)
+                await self.client.post(f"{url}/mcp", json=payload)
             except Exception as e:
                 print(f"Warning: handshake failed for tool={name} url={url}: {e}")
 
@@ -46,6 +46,8 @@ class ToolExecutor:
         server_url = self.registry[tool_name]
 
         trace_id = request_trace_id.get()
+        args = dict(args)
+        args.setdefault("trace_id", trace_id)
 
         start_net = time.perf_counter()
 
@@ -64,7 +66,7 @@ class ToolExecutor:
 
         # Use orjson for fast serialization (important for large payloads)
         response = await self.client.post(
-            f"{server_url}/messages",
+            f"{server_url}/mcp",
             content=orjson.dumps(payload),
             headers={"Content-Type": "application/json"}
         )
@@ -93,6 +95,7 @@ class ToolExecutor:
 
         return {
             "output": result.get("result"),
+            "tool_name": tool_name,
             "total_latency_ms": total_latency_ms,
             "tool_processing_ms": internal_proc_ms,
             "mcp_protocol_overhead_ms": total_latency_ms - internal_proc_ms

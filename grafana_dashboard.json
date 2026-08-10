@@ -67,6 +67,32 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "id": 5,
+      "title": "Echo Tool Processing P95",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(echo_tool_processing_ms_bucket[1m]))",
+          "legendFormat": "Echo p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Echo Tool Calls",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "rate(echo_tool_calls_total[1m])",
+          "legendFormat": "Echo calls/sec",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "refresh": "5s",
