@@ -6,9 +6,10 @@ import logging
 from metrics.prometheus import MCP_WORKFLOW_DEPTH, MCP_TOOL_RECOVERY
 
 class AgentPipeline:
-    def __init__(self, model_adapter, tool_executor):
+    def __init__(self, model_adapter, tool_executor, transport: str = "sse"):
         self.model = model_adapter
         self.tools = tool_executor
+        self.transport = transport
 
     async def run_workload(self, workload: dict):
         pipeline_start = time.perf_counter()
@@ -78,7 +79,7 @@ class AgentPipeline:
 
         async def call_tool(index: int, tool_name: str):
             args = {**payload, **tool_params, "step_index": index}
-            return await self.tools.call_mcp_tool(tool_name=tool_name, args=args)
+            return await self.tools.call_mcp_tool(tool_name=tool_name, args=args, transport=self.transport)
 
         if execution_mode == "parallel":
             return await asyncio.gather(
@@ -132,7 +133,7 @@ class AgentPipeline:
                         tool_args = {}
                 
                 try:
-                    res = await self.tools.call_mcp_tool(tool_name=tool_name, args=tool_args)
+                    res = await self.tools.call_mcp_tool(tool_name=tool_name, args=tool_args, transport=self.transport)
                     iteration_results.append(res)
                     MCP_TOOL_RECOVERY.labels(status="recovered").inc()
                     

@@ -4,8 +4,51 @@
     "description": "Multi-step complex workflow exercising diverse tools (math, file, db)",
     "model": "ollama",
     "execution_mode": "sequential",
-    "workflow": ["math", "file", "db"],
     "tool_params": { "delay_ms": 10, "payload_size_kb": 1 },
-    "payload": { "text": "Execute a deep planning sequence using multiple tools to calculate metrics and log them." }
+    "payload": { "text": "Calculate 15*5, then query the database for the user 'john', then log the result to a file" },
+    "tool_schemas": [
+      {
+        "type": "function",
+        "function": {
+          "name": "math",
+          "description": "Evaluate a mathematical expression",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "expression": { "type": "string" }
+            },
+            "required": ["expression"]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "db",
+          "description": "Query the database",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": { "type": "string" }
+            },
+            "required": ["query"]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "file",
+          "description": "Write to a file",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "content": { "type": "string" }
+            },
+            "required": ["content"]
+          }
+        }
+      }
+    ]
   }
 }

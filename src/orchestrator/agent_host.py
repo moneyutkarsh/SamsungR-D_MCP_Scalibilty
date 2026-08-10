@@ -122,7 +122,7 @@ async def run(req: RunRequest):
     workload = req.workload.dict(exclude_none=True)
     
     # Configure transport for this request dynamically
-    executor.transport = workload.get("transport", "sse")
+    transport = workload.get("transport", "sse")
 
     # Select model backend dynamically based on workload payload
     requested_model = workload.get("model", "mock")
@@ -131,7 +131,7 @@ async def run(req: RunRequest):
         print(f"Warning: requested model {requested_model} not available, falling back to mock")
         requested_model = "mock"
         
-    pipeline = AgentPipeline(adapters[requested_model], executor)
+    pipeline = AgentPipeline(adapters[requested_model], executor, transport=transport)
 
     result = await pipeline.run_workload(workload)
     total_ms = (time.perf_counter() - start) * 1000
