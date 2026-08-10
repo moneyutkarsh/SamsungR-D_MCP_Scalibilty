@@ -76,7 +76,8 @@ class ToolExecutor:
                 print(f"Error closing process for {name}: {e}")
 
     async def initialize_servers(self):
-        # Initialize SSE handshakes
+        # Warm up SSE connections to verify all tool servers are reachable.
+        # Stdio sessions are started lazily on first use in _call_stdio().
         for name, url in self.registry.items():
             payload = {
                 "jsonrpc": "2.0",
@@ -90,15 +91,7 @@ class ToolExecutor:
             try:
                 await self.client.post(f"{url}/mcp", json=payload)
             except Exception as e:
-                print(f"Warning: handshake failed for tool={name} url={url}: {e}")
-
-        # Initialize STDIO persistent sessions
-        for name in self.stdio_registry:
-            async with self.stdio_locks[name]:
-                try:
-                    await self._start_stdio_server(name)
-                except Exception as e:
-                    print(f"Warning: failed to start stdio server for {name}: {e}")
+                print(f"Warning: SSE handshake failed for tool={name} url={url}: {e}")
 
     async def _call_sse(self, tool_name: str, args: dict, trace_id: str):
         server_url = self.registry.get(tool_name)

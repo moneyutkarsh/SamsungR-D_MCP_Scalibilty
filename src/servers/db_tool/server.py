@@ -1,4 +1,4 @@
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 import asyncio
 import time
 import os
@@ -61,9 +61,12 @@ async def query_db(query: str, trace_id: str = "none", step_index: int = 0):
 async def metrics(request: Request) -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+# Expose proper ASGI app for uvicorn (FastMCP is not directly callable)
+app = mcp.sse_app()
+
 if __name__ == "__main__":
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
     import uvicorn
-    uvicorn.run("servers.db_tool.server:mcp", host="0.0.0.0", port=8004)
+    uvicorn.run("servers.db_tool.server:app", host="0.0.0.0", port=8004)

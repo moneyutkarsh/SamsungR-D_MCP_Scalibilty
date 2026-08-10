@@ -14,7 +14,7 @@ class FakeToolExecutor:
     def __init__(self):
         self.calls = []
 
-    async def call_mcp_tool(self, tool_name: str, args: dict):
+    async def call_mcp_tool(self, tool_name: str, args: dict, transport: str = "sse"):
         self.calls.append((tool_name, args))
         delay_ms = float(args.get("delay_ms", 0))
         payload_size_kb = int(args.get("payload_size_kb", 1))

@@ -30,7 +30,7 @@ services:
       - "8002:8002"
     volumes:
       - ./data/logs:/data/logs
-    command: ["python", "-m", "servers.math_tool.server"]
+    command: ["uvicorn", "servers.math_tool.server:app", "--host", "0.0.0.0", "--port", "8002"]
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8002"]
       interval: 10s
@@ -46,7 +46,7 @@ services:
       - "8003:8003"
     volumes:
       - ./data/logs:/data/logs
-    command: ["python", "-m", "servers.search_tool.server"]
+    command: ["uvicorn", "servers.search_tool.server:app", "--host", "0.0.0.0", "--port", "8003"]
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8003"]
       interval: 10s
@@ -63,7 +63,7 @@ services:
     volumes:
       - ./data/logs:/data/logs
       - ./data/tool_db.sqlite:/app/data/tool_db.sqlite
-    command: ["python", "-m", "servers.db_tool.server"]
+    command: ["uvicorn", "servers.db_tool.server:app", "--host", "0.0.0.0", "--port", "8004"]
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8004"]
       interval: 10s
@@ -80,7 +80,7 @@ services:
     volumes:
       - ./data/logs:/data/logs
       - ./data/tool_files:/app/data/tool_files
-    command: ["python", "-m", "servers.file_tool.server"]
+    command: ["uvicorn", "servers.file_tool.server:app", "--host", "0.0.0.0", "--port", "8005"]
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8005"]
       interval: 10s
@@ -96,7 +96,7 @@ services:
       - "8006:8006"
     volumes:
       - ./data/logs:/data/logs
-    command: ["python", "-m", "servers.sleep_tool.server"]
+    command: ["uvicorn", "servers.sleep_tool.server:app", "--host", "0.0.0.0", "--port", "8006"]
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8006"]
       interval: 10s

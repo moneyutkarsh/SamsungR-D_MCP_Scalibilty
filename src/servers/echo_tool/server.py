@@ -1,4 +1,4 @@
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 import asyncio
 import time
 import os
@@ -68,6 +68,9 @@ async def echo(
 async def metrics(request: Request) -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+# Expose proper ASGI app for uvicorn (FastMCP is not directly callable)
+app = mcp.sse_app()
+
 if __name__ == "__main__":
     import sys
     from pathlib import Path
@@ -78,4 +81,4 @@ if __name__ == "__main__":
     
     import uvicorn
     # Run the FastMCP server
-    uvicorn.run("servers.echo_tool.server:mcp", host="0.0.0.0", port=8001)
+    uvicorn.run("servers.echo_tool.server:app", host="0.0.0.0", port=8001)

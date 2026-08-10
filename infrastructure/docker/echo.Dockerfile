@@ -16,4 +16,4 @@ ENV PORT=8001
 
 EXPOSE 8001
 
-CMD ["python", "-m", "servers.echo_tool.server"]
+CMD ["uvicorn", "servers.echo_tool.server:app", "--host", "0.0.0.0", "--port", "8001"]
