@@ -16,3 +16,4 @@ aiofiles
 aiosqlite
 openai
 anthropic
+fastmcp
