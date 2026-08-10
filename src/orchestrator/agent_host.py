@@ -35,13 +35,13 @@ class WorkloadDefinition(BaseModel):
     name: str = Field(min_length=1)
     description: str = ""
     model: Literal["mock", "ollama", "openai", "anthropic"] = "mock"
+    transport: Literal["sse", "stdio"] = "sse"
     prompt: Optional[str] = None
     execution_mode: Literal["sequential", "parallel"] = "sequential"
-    workflow: List[Literal["echo"]] = Field(min_items=1)
-    tool_params: ToolParams
-    payload: Dict[str, Any]
+    workflow: List[Literal["echo"]] = Field(default_factory=list)
+    tool_params: ToolParams = Field(default_factory=lambda: ToolParams(delay_ms=0, payload_size_kb=1))
+    payload: Dict[str, Any] = Field(default_factory=dict)
     tool_schemas: List[Dict[str, Any]] = Field(default_factory=list)
-
 
 class RunRequest(BaseModel):
     workload: WorkloadDefinition
@@ -126,6 +126,10 @@ async def run(req: RunRequest):
 
     start = time.perf_counter()
     workload = req.workload.dict(exclude_none=True)
+    
+    # Configure transport for this request dynamically
+    executor.transport = workload.get("transport", "sse")
+
     result = await pipeline.run_workload(workload)
     total_ms = (time.perf_counter() - start) * 1000
 
@@ -138,13 +142,16 @@ async def run(req: RunRequest):
     MCP_LATENCY.labels(component="protocol").observe(m["mcp_protocol_overhead_ms"])
     MCP_LATENCY.labels(component="pipeline").observe(m["pipeline_overhead_ms"])
 
+    cost = m.get("cost_usd", 0.0)
+
     # Async non-blocking structured log
     await request_logger.log({
         "trace_id": trace_id,
         "environment": ENVIRONMENT,
         "workload": workload.get("name", "unknown"),
         "metrics": m,
-        "model_backend": MODEL_BACKEND
+        "model_backend": MODEL_BACKEND,
+        "cost_usd": cost
     })
 
     # Reset context var

@@ -126,8 +126,8 @@ def hypothesis_tests(
 
     # H2: Throughput at 100 users is higher than at 1 user across workloads.
     tp_repeat = baseline_repeat[["workload", "users", "throughput_rps"]].copy()
-    tp_1 = tp_repeat[tp_repeat["users"] == 1].set_index("workload")["throughput_rps"]
-    tp_100 = tp_repeat[tp_repeat["users"] == 100].set_index("workload")["throughput_rps"]
+    tp_1 = tp_repeat[tp_repeat["users"] == 1].groupby("workload")["throughput_rps"].mean()
+    tp_100 = tp_repeat[tp_repeat["users"] == 100].groupby("workload")["throughput_rps"].mean()
     common = sorted(set(tp_1.index) & set(tp_100.index))
     delta = np.array([tp_100[w] - tp_1[w] for w in common], dtype=float)
     p_h2 = safe_wilcoxon(delta, alternative="greater")

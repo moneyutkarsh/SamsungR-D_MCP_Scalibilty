@@ -12,3 +12,7 @@ pandas
 scipy
 matplotlib
 seaborn
+aiofiles
+aiosqlite
+openai
+anthropic

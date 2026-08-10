@@ -16,3 +16,15 @@ MCP_LATENCY = Histogram(
     ["component"],  # model, tool, protocol, pipeline, total
     buckets=LATENCY_BUCKETS
 )
+
+MCP_WORKFLOW_DEPTH = Histogram(
+    "mcp_workflow_depth_count",
+    "Depth of iterative model-tool workflows",
+    buckets=[1, 2, 3, 4, 5, 10, 20]
+)
+
+MCP_TOOL_RECOVERY = Counter(
+    "mcp_tool_recovery_total",
+    "Count of tool failures and recoveries",
+    ["status"] # recovered, failed
+)

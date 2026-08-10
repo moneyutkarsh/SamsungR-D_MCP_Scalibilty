@@ -1,0 +1,50 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "SSE vs Stdio Latency",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(mcp_latency_ms_bucket{component=\"protocol\"}[1m])) by (le))",
+          "legendFormat": "Protocol Overhead (ms)"
+        }
+      ]
+    },
+    {
+      "title": "Cost ($) per Request",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(mcp_cost_usd_total[1m])",
+          "legendFormat": "Cost/sec ($)"
+        }
+      ]
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "MCP Scalability Analysis",
+  "uid": "mcp-scalability",
+  "version": 1
+}

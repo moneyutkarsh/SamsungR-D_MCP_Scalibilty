@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from .base import IMCPAdapter, ModelMetadata, ModelResponse
+from .base import IMCPAdapter, ModelMetadata, ModelResponse, calculate_cost_usd
 
 
 class AnthropicAdapter(IMCPAdapter):
@@ -39,7 +39,7 @@ class AnthropicAdapter(IMCPAdapter):
 
         payload: Dict[str, Any] = {
             "model": self.model,
-            "max_tokens": kwargs.pop("max_tokens", 512),
+            "max_tokens": kwargs.pop("max_tokens", 1024),
             "messages": [{"role": "user", "content": prompt}],
             **kwargs,
         }
@@ -58,6 +58,8 @@ class AnthropicAdapter(IMCPAdapter):
         ]
         tool_calls = [
             {
+                "id": block.get("id"),
+                "type": "function",
                 "function": {
                     "name": block.get("name"),
                     "arguments": block.get("input", {}),
@@ -67,14 +69,19 @@ class AnthropicAdapter(IMCPAdapter):
             if block.get("type") == "tool_use"
         ]
         usage = data.get("usage", {})
+        
+        input_toks = usage.get("input_tokens", 0)
+        output_toks = usage.get("output_tokens", 0)
+        cost = calculate_cost_usd(self.name(), input_toks, output_toks)
 
         return ModelResponse(
             text="".join(text_parts) or None,
             tool_calls=tool_calls,
             metadata=ModelMetadata(
                 total_latency_ms=total_ms,
-                input_tokens=usage.get("input_tokens", 0),
-                output_tokens=usage.get("output_tokens", 0),
+                input_tokens=input_toks,
+                output_tokens=output_toks,
+                cost_usd=cost
             ),
             raw=data,
         )

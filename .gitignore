@@ -27,12 +27,12 @@ pip-wheel-metadata/
 data/logs/
 data/prometheus/
 data/ollama/
+data/results/
 
 # Keep empty directories (optional)
 !data/logs/.gitkeep
 !data/results/.gitkeep
 !data/prometheus/.gitkeep
-
 # -----------------------------
 # Prometheus & Grafana Runtime Data
 # -----------------------------

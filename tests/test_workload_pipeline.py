@@ -128,6 +128,70 @@ class WorkloadPipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["metrics"]["tool_call_count"], 5)
         self.assertEqual(len(executor.calls), 5)
 
+    async def test_iterative_depth_loop(self):
+        executor = FakeToolExecutor()
+        
+        # We need a mock adapter that returns tool calls a few times
+        class IterativeMockAdapter:
+            def __init__(self):
+                self.calls = 0
+            async def generate(self, prompt, tools=None, **kwargs):
+                from model_adapters.base import ModelResponse, ModelMetadata
+                self.calls += 1
+                if self.calls < 3:
+                    return ModelResponse(
+                        text="Thinking...",
+                        tool_calls=[{"id": f"call_{self.calls}", "type": "function", "function": {"name": "echo", "arguments": {}}}],
+                        metadata=ModelMetadata(total_latency_ms=10, input_tokens=10, output_tokens=10, cost_usd=0.01),
+                        raw={}
+                    )
+                return ModelResponse(
+                    text="Final Answer",
+                    tool_calls=[],
+                    metadata=ModelMetadata(total_latency_ms=10, input_tokens=10, output_tokens=10, cost_usd=0.01),
+                    raw={}
+                )
+        
+        pipeline = AgentPipeline(IterativeMockAdapter(), executor)
+        result = await pipeline.run_workload(
+            {
+                "name": "iterative_test",
+                "model": "mock",
+                "workflow": [], # Use model's tool calls
+                "tool_schemas": [{"name": "echo"}]
+            }
+        )
+        
+        # Initial call + 2 iterations = 3 total model calls, 2 tool calls
+        self.assertEqual(result["metrics"]["tool_call_count"], 2)
+        self.assertAlmostEqual(result["metrics"]["cost_usd"], 0.03)
+
+    async def test_max_iterations_halt(self):
+        executor = FakeToolExecutor()
+        
+        class InfiniteMockAdapter:
+            async def generate(self, prompt, tools=None, **kwargs):
+                from model_adapters.base import ModelResponse, ModelMetadata
+                return ModelResponse(
+                    text="Thinking...",
+                    tool_calls=[{"id": "infinite", "type": "function", "function": {"name": "echo", "arguments": {}}}],
+                    metadata=ModelMetadata(total_latency_ms=10, input_tokens=10, output_tokens=10, cost_usd=0.01),
+                    raw={}
+                )
+        
+        pipeline = AgentPipeline(InfiniteMockAdapter(), executor)
+        result = await pipeline.run_workload(
+            {
+                "name": "infinite_test",
+                "model": "mock",
+                "workflow": [],
+                "tool_schemas": [{"name": "echo"}]
+            }
+        )
+        
+        # Pipeline enforces MAX_ITERATIONS = 5
+        self.assertEqual(result["metrics"]["tool_call_count"], 5)
+        self.assertAlmostEqual(result["metrics"]["cost_usd"], 0.06)
 
 if __name__ == "__main__":
     unittest.main()
