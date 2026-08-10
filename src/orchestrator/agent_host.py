@@ -51,39 +51,32 @@ class RunRequest(BaseModel):
 # -------------------------------
 
 executor = ToolExecutor()
+adapters = {}
 
-# Select model backend
-if MODEL_BACKEND == "mock":
-    print("Using MockAdapter")
-    model = MockAdapter()
+print("Initializing MockAdapter")
+adapters["mock"] = MockAdapter()
 
-elif MODEL_BACKEND == "ollama":
-    print("Using OllamaAdapter")
-    model = OllamaAdapter(
-        model=os.getenv("OLLAMA_MODEL", "phi3:mini"),
-        base_url=os.getenv("OLLAMA_URL", "http://localhost:11434")
-    )
+print("Initializing OllamaAdapter")
+adapters["ollama"] = OllamaAdapter(
+    model=os.getenv("OLLAMA_MODEL", "phi3:mini"),
+    base_url=os.getenv("OLLAMA_URL", "http://localhost:11434")
+)
 
-elif MODEL_BACKEND == "openai":
-    print("Using OpenAIAdapter")
+if os.getenv("OPENAI_API_KEY"):
+    print("Initializing OpenAIAdapter")
     from model_adapters.openai_adapter import OpenAIAdapter
-    model = OpenAIAdapter(
+    adapters["openai"] = OpenAIAdapter(
         api_key=os.getenv("OPENAI_API_KEY"),
         model=os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     )
 
-elif MODEL_BACKEND == "anthropic":
-    print("Using AnthropicAdapter")
+if os.getenv("ANTHROPIC_API_KEY"):
+    print("Initializing AnthropicAdapter")
     from model_adapters.anthropic_adapter import AnthropicAdapter
-    model = AnthropicAdapter(
+    adapters["anthropic"] = AnthropicAdapter(
         api_key=os.getenv("ANTHROPIC_API_KEY"),
         model=os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
     )
-
-else:
-    raise RuntimeError(f"Unknown MODEL_BACKEND: {MODEL_BACKEND}")
-
-pipeline = AgentPipeline(model, executor)
 
 # Async JSONL logger
 log_path = os.getenv("LOG_PATH", "data/logs/agent_host.jsonl")
@@ -97,8 +90,9 @@ request_logger = JSONLLogger(log_path)
 async def lifespan(app: FastAPI):
     await executor.initialize_servers()
     yield
-    if hasattr(model, "close"):
-        await model.close()
+    for adapter in adapters.values():
+        if hasattr(adapter, "close"):
+            await adapter.close()
     await executor.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -129,6 +123,15 @@ async def run(req: RunRequest):
     
     # Configure transport for this request dynamically
     executor.transport = workload.get("transport", "sse")
+
+    # Select model backend dynamically based on workload payload
+    requested_model = workload.get("model", "mock")
+    if requested_model not in adapters:
+        # Fallback if specific api key was missing or unavailable
+        print(f"Warning: requested model {requested_model} not available, falling back to mock")
+        requested_model = "mock"
+        
+    pipeline = AgentPipeline(adapters[requested_model], executor)
 
     result = await pipeline.run_workload(workload)
     total_ms = (time.perf_counter() - start) * 1000

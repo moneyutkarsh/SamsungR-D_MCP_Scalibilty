@@ -101,6 +101,12 @@ def parse_args() -> argparse.Namespace:
         help="Root output folder for dataset artifacts",
     )
     parser.add_argument(
+        "--model-backend",
+        choices=["openai", "anthropic", "ollama"],
+        default="openai",
+        help="Which model backend to stress test.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate the setup without actually hitting the network or creating files.",
@@ -474,7 +480,7 @@ async def main() -> None:
         "requests_per_user": args.requests_per_user,
         "warmup_seconds": args.warmup_seconds,
         "ci_bootstrap_samples": args.ci_bootstrap_samples,
-        "model_backend_expected": "mock",
+        "model_backend_expected": args.model_backend,
     }
 
     with (result_root / "manifest.json").open("w", encoding="utf-8") as f:
@@ -512,8 +518,9 @@ async def main() -> None:
                         print(f"[DRY-RUN] Would run: transport={transport} workload={workload_name} users={users} repeat={repeat}")
                         continue
 
-                    # Update transport in workload payload
+                    # Update transport and model in workload payload
                     payload["workload"]["transport"] = transport
+                    payload["workload"]["model"] = args.model_backend
 
                     repeat_result = await run_single_repeat(
                         host=args.host,

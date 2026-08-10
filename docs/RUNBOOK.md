@@ -27,16 +27,19 @@ This will run workloads W1-W7 iteratively across both transports and output data
 
 ## Suite B: Live LLM Cognitive Stress
 **Goal**: Test complex context accumulation, iterative workflows, and error recovery using real intelligence.
-**Model**: OpenAI/Anthropic.
-**Constraint**: Rate limits apply (HTTP 429). Max concurrency ~50.
+**Model**: OpenAI/Anthropic/Ollama (dynamically selectable per test).
+**Constraint**: Rate limits apply to external APIs (HTTP 429). Max concurrency ~50.
 
 **Command**:
 ```bash
-# Dry-run to validate setup
+# Dry-run to validate setup (default is openai)
 python scripts/run_live_llm_stress.py --dry-run
 
-# Execute full suite
-python scripts/run_live_llm_stress.py --users 1 5 10 20 50
+# Run with Anthropic models
+python scripts/run_live_llm_stress.py --model-backend anthropic --users 1 5 10
+
+# Run with local Ollama models (no API keys required, safe to push concurrency higher if hardware permits)
+python scripts/run_live_llm_stress.py --model-backend ollama --users 1 5 10 20 50
 ```
 
 ## Generate Reports & Dashboards
