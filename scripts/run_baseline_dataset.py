@@ -118,6 +118,12 @@ def parse_args() -> argparse.Namespace:
         default="data/logs/echo_tool.jsonl",
         help="Echo tool JSONL log path for trace filtering",
     )
+    for t in ["math", "search", "db", "file", "sleep"]:
+        parser.add_argument(
+            f"--{t}-log",
+            default=f"data/logs/{t}_tool.jsonl",
+            help=f"{t.capitalize()} tool JSONL log path for trace filtering",
+        )
     parser.add_argument(
         "--ci-bootstrap-samples",
         type=int,
@@ -540,24 +546,33 @@ async def main() -> None:
                     repeat_result.trace_ids,
                     filtered_log_dir / "echo_tool.jsonl",
                 )
+                extra_matches = {}
+                for t in ["math", "search", "db", "file", "sleep"]:
+                    log_path = Path(getattr(args, f"{t}_log"))
+                    if log_path.exists():
+                        extra_matches[f"{t}_log_matches"] = filter_logs_for_trace_ids(
+                            log_path,
+                            repeat_result.trace_ids,
+                            filtered_log_dir / f"{t}_tool.jsonl",
+                        )
 
-                coverage_rows.append(
-                    {
-                        "workload": workload_name,
-                        "users": users,
-                        "repeat": repeat,
-                        "requests_expected": users * args.requests_per_user,
-                        "requests_observed": len(repeat_requests),
-                        "success_count": repeat_result.success_count,
-                        "error_count": repeat_result.error_count,
-                        "throughput_rps": repeat_result.throughput_rps,
-                        "trace_ids": len(repeat_result.trace_ids),
-                        "agent_log_matches": agent_matches,
-                        "tool_log_matches": tool_matches,
-                        "echo_log_matches": echo_matches,
-                        "output_dir": str(repeat_result.output_dir),
-                    }
-                )
+                row = {
+                    "workload": workload_name,
+                    "users": users,
+                    "repeat": repeat,
+                    "requests_expected": users * args.requests_per_user,
+                    "requests_observed": len(repeat_requests),
+                    "success_count": repeat_result.success_count,
+                    "error_count": repeat_result.error_count,
+                    "throughput_rps": repeat_result.throughput_rps,
+                    "trace_ids": len(repeat_result.trace_ids),
+                    "agent_log_matches": agent_matches,
+                    "tool_log_matches": tool_matches,
+                    "echo_log_matches": echo_matches,
+                    "output_dir": str(repeat_result.output_dir),
+                }
+                row.update(extra_matches)
+                coverage_rows.append(row)
 
                 print(
                     f"[DONE] workload={workload_name} users={users} repeat={repeat} "

@@ -118,6 +118,12 @@ def parse_args() -> argparse.Namespace:
         default="data/logs/echo_tool.jsonl",
         help="Echo tool JSONL log path for trace filtering",
     )
+    for t in ["math", "search", "db", "file", "sleep"]:
+        parser.add_argument(
+            f"--{t}-log",
+            default=f"data/logs/{t}_tool.jsonl",
+            help=f"{t.capitalize()} tool JSONL log path for trace filtering",
+        )
     parser.add_argument(
         "--ci-bootstrap-samples",
         type=int,
@@ -546,7 +552,33 @@ async def main() -> None:
                         repeat_result.trace_ids,
                         filtered_log_dir / "echo_tool.jsonl",
                     )
+                    extra_matches = {}
+                    for t in ["math", "search", "db", "file", "sleep"]:
+                        log_path = Path(getattr(args, f"{t}_log"))
+                        if log_path.exists():
+                            extra_matches[f"{t}_log_matches"] = filter_logs_for_trace_ids(
+                                log_path,
+                                repeat_result.trace_ids,
+                                filtered_log_dir / f"{t}_tool.jsonl",
+                            )
 
+                    summary = {
+                        "timestamp": datetime.now().isoformat(),
+                        "workload": workload_name,
+                        "transport": transport,
+                        "users": users,
+                        "repeat": repeat,
+                        "mean_latency_ms": repeat_result.mean_latency_ms,
+                        "p95_latency_ms": repeat_result.p95_latency_ms,
+                        "throughput_rps": repeat_result.throughput_rps,
+                        "error_rate": repeat_result.error_rate,
+                        "filtered_logs": {
+                            "agent_log_matches": agent_matches,
+                            "tool_log_matches": tool_matches,
+                            "echo_log_matches": echo_matches,
+                            **extra_matches
+                        },
+                    }
                     coverage_rows.append(
                         {
                             "transport": transport,
