@@ -3,6 +3,7 @@
     "name": "w5_large_payload",
     "description": "1MB payload test",
     "model": "ollama",
+    "execution_mode": "sequential",
     "workflow": ["echo"],
     "tool_params": { "delay_ms": 10, "payload_size_kb": 1024 },
     "payload": { "text": "X" }

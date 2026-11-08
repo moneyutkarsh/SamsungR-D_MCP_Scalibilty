@@ -7,3 +7,13 @@ pydantic
 mcp
 orjson
 python-dotenv
+numpy
+pandas
+scipy
+matplotlib
+seaborn
+aiofiles
+aiosqlite
+openai
+anthropic
+fastmcp

@@ -1,5 +1,6 @@
+import asyncio
 import time
-from .base import IMCPAdapter, ModelResponse
+from .base import IMCPAdapter, ModelResponse, ModelMetadata
 
 
 class LocalAdapter(IMCPAdapter):
@@ -9,11 +10,11 @@ class LocalAdapter(IMCPAdapter):
     def name(self) -> str:
         return f"local:{self.model_name}"
 
-    def generate(self, prompt: str, **kwargs) -> ModelResponse:
+    async def generate(self, prompt: str, tools=None, **kwargs) -> ModelResponse:
         start = time.time()
 
         # TODO: Replace this with real local inference call
-        time.sleep(0.2)  # simulate model latency
+        await asyncio.sleep(0.2)  # simulate model latency
 
         text = "Local model response"
 
@@ -21,6 +22,13 @@ class LocalAdapter(IMCPAdapter):
 
         return ModelResponse(
             text=text,
-            raw={"model": self.model_name},
-            latency_ms=latency_ms
+            tool_calls=[],
+            metadata=ModelMetadata(
+                total_latency_ms=latency_ms,
+                ttft_ms=latency_ms,
+                input_tokens=1,
+                output_tokens=1,
+                cost_usd=0.0
+            ),
+            raw={"model": self.model_name}
         )

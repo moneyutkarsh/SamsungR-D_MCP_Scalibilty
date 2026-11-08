@@ -2,8 +2,10 @@ import os
 import time
 import uuid
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Literal, Optional
+
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -14,7 +16,6 @@ from orchestrator.pipeline import AgentPipeline
 # Adapters
 from model_adapters.mock_adapter import MockAdapter
 from model_adapters.ollama_adapter import OllamaAdapter
-# from model_adapters.openai_adapter import OpenAIAdapter
 
 from core.context import request_trace_id
 from utils.jsonl_logger import JSONLLogger
@@ -22,42 +23,60 @@ from utils.jsonl_logger import JSONLLogger
 # Environment tag for cross-env comparison (local, docker, cloud, etc)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 
-# Which model backend to use: mock | ollama | openai
+# Which model backend to use: mock | ollama | openai | anthropic
 MODEL_BACKEND = os.getenv("MODEL_BACKEND", "ollama")
 
+class ToolParams(BaseModel):
+    delay_ms: int = Field(ge=0, le=300000)
+    payload_size_kb: int = Field(ge=0, le=10240)
+
+
+class WorkloadDefinition(BaseModel):
+    name: str = Field(min_length=1)
+    description: str = ""
+    model: Literal["mock", "ollama", "openai", "anthropic"] = "mock"
+    transport: Literal["sse", "stdio"] = "sse"
+    prompt: Optional[str] = None
+    execution_mode: Literal["sequential", "parallel"] = "sequential"
+    workflow: List[Literal["echo"]] = Field(default_factory=list)
+    tool_params: ToolParams = Field(default_factory=lambda: ToolParams(delay_ms=0, payload_size_kb=1))
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    tool_schemas: List[Dict[str, Any]] = Field(default_factory=list)
+
 class RunRequest(BaseModel):
-    workload: dict
+    workload: WorkloadDefinition
 
 # -------------------------------
 # Initialize core components
 # -------------------------------
 
 executor = ToolExecutor()
+adapters = {}
 
-# Select model backend
-if MODEL_BACKEND == "mock":
-    print("Using MockAdapter")
-    model = MockAdapter()
+print("Initializing MockAdapter")
+adapters["mock"] = MockAdapter()
 
-elif MODEL_BACKEND == "ollama":
-    print("Using OllamaAdapter")
-    model = OllamaAdapter(
-        model=os.getenv("OLLAMA_MODEL", "phi3:mini"),
-        base_url=os.getenv("OLLAMA_URL", "http://localhost:11434")
-    )
+print("Initializing OllamaAdapter")
+adapters["ollama"] = OllamaAdapter(
+    model=os.getenv("OLLAMA_MODEL", "phi3:mini"),
+    base_url=os.getenv("OLLAMA_URL", "http://localhost:11434")
+)
 
-elif MODEL_BACKEND == "openai":
-    print("Using OpenAIAdapter")
+if os.getenv("OPENAI_API_KEY"):
+    print("Initializing OpenAIAdapter")
     from model_adapters.openai_adapter import OpenAIAdapter
-    model = OpenAIAdapter(
+    adapters["openai"] = OpenAIAdapter(
         api_key=os.getenv("OPENAI_API_KEY"),
         model=os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     )
 
-else:
-    raise RuntimeError(f"Unknown MODEL_BACKEND: {MODEL_BACKEND}")
-
-pipeline = AgentPipeline(model, executor)
+if os.getenv("ANTHROPIC_API_KEY"):
+    print("Initializing AnthropicAdapter")
+    from model_adapters.anthropic_adapter import AnthropicAdapter
+    adapters["anthropic"] = AnthropicAdapter(
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        model=os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
+    )
 
 # Async JSONL logger
 log_path = os.getenv("LOG_PATH", "data/logs/agent_host.jsonl")
@@ -71,6 +90,9 @@ request_logger = JSONLLogger(log_path)
 async def lifespan(app: FastAPI):
     await executor.initialize_servers()
     yield
+    for adapter in adapters.values():
+        if hasattr(adapter, "close"):
+            await adapter.close()
     await executor.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -94,34 +116,52 @@ async def run(req: RunRequest):
     # Set context var for this request
     token = request_trace_id.set(trace_id)
 
-    MCP_REQUESTS.inc()
+    try:
+        MCP_REQUESTS.inc()
 
-    start = time.perf_counter()
-    result = await pipeline.run_workload(req.workload)
-    total_ms = (time.perf_counter() - start) * 1000
+        start = time.perf_counter()
+        workload = req.workload.dict(exclude_none=True)
+        
+        # Configure transport for this request dynamically
+        transport = workload.get("transport", "sse")
 
-    m = result["metrics"]
+        # Select model backend dynamically based on workload payload
+        requested_model = workload.get("model", "mock")
+        if requested_model not in adapters:
+            # Fallback if specific api key was missing or unavailable
+            print(f"Warning: requested model {requested_model} not available, falling back to mock")
+            requested_model = "mock"
+            
+        pipeline = AgentPipeline(adapters[requested_model], executor, transport=transport)
 
-    # Prometheus metrics
-    MCP_LATENCY.labels(component="total").observe(total_ms)
-    MCP_LATENCY.labels(component="model").observe(m["model_latency_ms"])
-    MCP_LATENCY.labels(component="tool").observe(m["tool_total_ms"])
-    MCP_LATENCY.labels(component="protocol").observe(m["mcp_protocol_overhead_ms"])
-    MCP_LATENCY.labels(component="pipeline").observe(m["pipeline_overhead_ms"])
+        result = await pipeline.run_workload(workload)
+        total_ms = (time.perf_counter() - start) * 1000
 
-    # Async non-blocking structured log
-    await request_logger.log({
-        "trace_id": trace_id,
-        "environment": ENVIRONMENT,
-        "workload": req.workload.get("name", "unknown"),
-        "metrics": m,
-        "model_backend": MODEL_BACKEND
-    })
+        m = result["metrics"]
 
-    # Reset context var
-    request_trace_id.reset(token)
+        # Prometheus metrics
+        MCP_LATENCY.labels(component="total").observe(total_ms)
+        MCP_LATENCY.labels(component="model").observe(m["model_latency_ms"])
+        MCP_LATENCY.labels(component="tool").observe(m["tool_total_ms"])
+        MCP_LATENCY.labels(component="protocol").observe(m["mcp_protocol_overhead_ms"])
+        MCP_LATENCY.labels(component="pipeline").observe(m["pipeline_overhead_ms"])
 
-    return {
-        "trace_id": trace_id,
-        "result": result
-    }
+        cost = m.get("cost_usd", 0.0)
+
+        # Async non-blocking structured log
+        await request_logger.log({
+            "trace_id": trace_id,
+            "environment": ENVIRONMENT,
+            "workload": workload.get("name", "unknown"),
+            "metrics": m,
+            "model_backend": MODEL_BACKEND,
+            "cost_usd": cost
+        })
+
+        return {
+            "trace_id": trace_id,
+            "result": result
+        }
+    finally:
+        # Reset context var unconditionally
+        request_trace_id.reset(token)

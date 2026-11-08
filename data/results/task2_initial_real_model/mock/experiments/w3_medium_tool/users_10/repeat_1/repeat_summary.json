@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-30T15:57:57.334395+00:00",
+  "workload": "w3_medium_tool",
+  "users": 10,
+  "repeat": 1,
+  "requests_per_user": 5,
+  "total_requests": 50,
+  "success_count": 50,
+  "error_count": 0,
+  "elapsed_s": 0.2769470999992336,
+  "throughput_rps": 180.53989372027496
+}

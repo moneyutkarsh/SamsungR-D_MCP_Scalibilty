@@ -1,6 +1,7 @@
 import time
 from openai import AsyncOpenAI
-from .base import IMCPAdapter, ModelResponse, ModelMetadata
+import json
+from .base import IMCPAdapter, ModelResponse, ModelMetadata, calculate_cost_usd
 
 class OpenAIAdapter(IMCPAdapter):
     def __init__(self, api_key: str, model: str):
@@ -24,13 +25,32 @@ class OpenAIAdapter(IMCPAdapter):
         end_time = time.perf_counter()
         latency = (end_time - start_time) * 1000
 
+        input_toks = response.usage.prompt_tokens if response.usage else 0
+        output_toks = response.usage.completion_tokens if response.usage else 0
+        cost = calculate_cost_usd(self.name(), input_toks, output_toks)
+
+        # Parse tool calls to match the standard format if needed
+        raw_tool_calls = getattr(response.choices[0].message, 'tool_calls', [])
+        tool_calls = []
+        if raw_tool_calls:
+            for tc in raw_tool_calls:
+                tool_calls.append({
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": json.loads(tc.function.arguments)
+                    }
+                })
+
         return ModelResponse(
             text=response.choices[0].message.content,
-            tool_calls=getattr(response.choices[0].message, 'tool_calls', []),
+            tool_calls=tool_calls,
             metadata=ModelMetadata(
                 total_latency_ms=latency,
-                input_tokens=response.usage.prompt_tokens,
-                output_tokens=response.usage.completion_tokens
+                input_tokens=input_toks,
+                output_tokens=output_toks,
+                cost_usd=cost
             ),
             raw=response.model_dump()
         )

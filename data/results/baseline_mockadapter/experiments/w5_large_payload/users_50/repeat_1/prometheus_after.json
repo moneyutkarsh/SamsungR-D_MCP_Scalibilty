@@ -1,0 +1,81 @@
+{
+  "captured_at": "2026-03-30T15:36:25.607437+00:00",
+  "queries": {
+    "mcp_requests_total": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {
+              "__name__": "mcp_requests_total",
+              "instance": "agent_host:8000",
+              "job": "agent_host"
+            },
+            "value": [
+              1774885002.449,
+              "17402"
+            ]
+          }
+        ]
+      }
+    },
+    "mcp_latency_p50_total": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {
+              "component": "total",
+              "instance": "agent_host:8000",
+              "job": "agent_host"
+            },
+            "value": [
+              1774885002.452,
+              "2.5"
+            ]
+          }
+        ]
+      }
+    },
+    "mcp_latency_p95_total": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {
+              "component": "total",
+              "instance": "agent_host:8000",
+              "job": "agent_host"
+            },
+            "value": [
+              1774885002.457,
+              "4.75"
+            ]
+          }
+        ]
+      }
+    },
+    "mcp_latency_p99_total": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {
+              "component": "total",
+              "instance": "agent_host:8000",
+              "job": "agent_host"
+            },
+            "value": [
+              1774885002.46,
+              "4.95"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

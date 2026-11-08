@@ -1,8 +1,9 @@
 {
   "workload": {
     "name": "w6_multi_tool",
-    "description": "5 different tools",
+    "description": "5 parallel tool invocations",
     "model": "ollama",
+    "execution_mode": "parallel",
     "workflow": ["echo", "echo", "echo", "echo", "echo"],
     "tool_params": { "delay_ms": 10, "payload_size_kb": 1 },
     "payload": { "text": "menu" }

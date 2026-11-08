@@ -1,0 +1,10 @@
+workload,users,repeat,requests_expected,requests_observed,success_count,error_count,throughput_rps,trace_ids,agent_log_matches,tool_log_matches,echo_log_matches,output_dir
+w1_pure_mcp,10,1,50,50,50,0,166.22804626160223,50,0,0,0,data\results\task2_initial_real_model\mock\experiments\w1_pure_mcp\users_10\repeat_1
+w1_pure_mcp,50,1,250,250,250,0,91.92045659611809,250,0,0,0,data\results\task2_initial_real_model\mock\experiments\w1_pure_mcp\users_50\repeat_1
+w1_pure_mcp,100,1,500,500,500,0,64.38938911289048,500,0,0,0,data\results\task2_initial_real_model\mock\experiments\w1_pure_mcp\users_100\repeat_1
+w2_light_tool,10,1,50,50,50,0,166.91336461908998,50,0,0,0,data\results\task2_initial_real_model\mock\experiments\w2_light_tool\users_10\repeat_1
+w2_light_tool,50,1,250,250,250,0,91.47755572552327,250,0,0,0,data\results\task2_initial_real_model\mock\experiments\w2_light_tool\users_50\repeat_1
+w2_light_tool,100,1,500,500,500,0,67.98315502507366,500,0,0,0,data\results\task2_initial_real_model\mock\experiments\w2_light_tool\users_100\repeat_1
+w3_medium_tool,10,1,50,50,50,0,180.53989372027496,50,0,0,0,data\results\task2_initial_real_model\mock\experiments\w3_medium_tool\users_10\repeat_1
+w3_medium_tool,50,1,250,250,250,0,89.17828630014789,250,0,0,0,data\results\task2_initial_real_model\mock\experiments\w3_medium_tool\users_50\repeat_1
+w3_medium_tool,100,1,500,500,500,0,67.59333707061498,500,0,0,0,data\results\task2_initial_real_model\mock\experiments\w3_medium_tool\users_100\repeat_1

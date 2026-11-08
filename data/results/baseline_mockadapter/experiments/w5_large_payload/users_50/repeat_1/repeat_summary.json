@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-30T15:36:25.605877+00:00",
+  "workload": "w5_large_payload",
+  "users": 50,
+  "repeat": 1,
+  "requests_per_user": 5,
+  "total_requests": 250,
+  "success_count": 250,
+  "error_count": 0,
+  "elapsed_s": 2.7332848999994894,
+  "throughput_rps": 91.46503534997274
+}

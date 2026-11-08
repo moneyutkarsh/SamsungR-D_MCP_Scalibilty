@@ -25,15 +25,14 @@ pip-wheel-metadata/
 # Logs & Experiment Outputs
 # -----------------------------
 data/logs/
-data/results/
 data/prometheus/
 data/ollama/
+data/results/
 
 # Keep empty directories (optional)
 !data/logs/.gitkeep
 !data/results/.gitkeep
 !data/prometheus/.gitkeep
-
 # -----------------------------
 # Prometheus & Grafana Runtime Data
 # -----------------------------
@@ -84,7 +83,7 @@ htmlcov/
 *.sqlite
 *.db
 *.parquet
-*.csv
+
 
 # -----------------------------
 # Node (if added later)

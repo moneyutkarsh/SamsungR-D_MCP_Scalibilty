@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-03-30T15:57:15Z",
+  "task": "task2_initial_real_model_dataset",
+  "workloads": [
+    "benchmarks/workloads/w1_pure_mcp.json",
+    "benchmarks/workloads/w2_light_tool.json",
+    "benchmarks/workloads/w3_medium_tool.json"
+  ],
+  "users": [
+    10,
+    50,
+    100
+  ],
+  "repeats": 1,
+  "requests_per_user": 5,
+  "ollama_model": "llama3.2:3b",
+  "host": "http://localhost:8000",
+  "prometheus_url": "http://localhost:9090",
+  "skip_docker_setup": false
+}
